@@ -8,7 +8,21 @@ public class GK : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 	
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput" });
+		PublicDependencyModuleNames.AddRange(new string[] { 
+			"Core",
+			"CoreUObject",
+			"Engine",
+			"InputCore",
+			"GameplayTags",
+			"EnhancedInput",
+			"GameplayTasks",
+			"AnimGraphRuntime",
+			"MotionWarping",
+			"Niagara",
+			"NavigationSystem",
+			"MoviePlayer",
+			"GameplayAbilities"
+		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });
 
