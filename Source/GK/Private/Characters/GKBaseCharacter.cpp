@@ -1,8 +1,7 @@
 //  Rodney Torres, Erik Aguiar, and Michael Hernandez All Rights
 
-
 #include "Characters/GKBaseCharacter.h"
-
+#include "GameplayAbilitySystem/AttributeSets/GKBasicAttributeSet.h"
 
 // Sets default values
 AGKBaseCharacter::AGKBaseCharacter()
@@ -11,7 +10,7 @@ AGKBaseCharacter::AGKBaseCharacter()
 	PrimaryActorTick.bCanEverTick = true;
 	
 	GKAbilitySystemComponent = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("GKAbilitySystemComponent"));
-	GKAttributeSet = CreateDefaultSubobject<UAttributeSet>(TEXT("GKAttributeSet"));
+	GKBasicAttributeSet = CreateDefaultSubobject<UGKBasicAttributeSet>(TEXT("GKBasicAttributeSet"));	
 }
 
 UAbilitySystemComponent* AGKBaseCharacter::GetAbilitySystemComponent() const
@@ -71,4 +70,3 @@ void AGKBaseCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 }
-

@@ -43,7 +43,7 @@ public:
 	UAbilitySystemComponent* GKAbilitySystemComponent;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AbilitySystem")
-	class UAttributeSet* GKAttributeSet;
+	class UGKBasicAttributeSet* GKBasicAttributeSet;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AbilitySystem")
 	TArray<TSubclassOf<UGameplayAbility>> StartingAbilities;
