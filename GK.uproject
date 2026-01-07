@@ -13,13 +13,13 @@
 			]
 		}
 	],
-	"Plugins": [
-		{
-			"Name": "ModelingToolsEditorMode",
-			"Enabled": true,
-			"TargetAllowList": [
-				"Editor"
-			]
-		}
-	]
+"Plugins": [
+  { "Name": "GameplayAbilities", "Enabled": true },
+
+  {
+    "Name": "ModelingToolsEditorMode",
+    "Enabled": true,
+    "TargetAllowList": [ "Editor" ]
+  }
+]
 }
