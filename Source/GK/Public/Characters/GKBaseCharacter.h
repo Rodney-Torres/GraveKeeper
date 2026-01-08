@@ -8,7 +8,6 @@
 #include "AbilitySystemComponent.h"
 #include "GKBaseCharacter.generated.h"
 
-
 UCLASS()
 class GK_API AGKBaseCharacter : public ACharacter, public IAbilitySystemInterface
 {
@@ -31,6 +30,9 @@ public:
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
+	
+	// Called when the character is possessed by a controller
+	virtual void PossessedBy(AController* NewController) override;
 
 public:
 	// Called every frame

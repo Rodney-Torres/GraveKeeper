@@ -18,6 +18,7 @@ UAbilitySystemComponent* AGKBaseCharacter::GetAbilitySystemComponent() const
 	return GKAbilitySystemComponent;
 }
 
+// Grant abilities to the character
 TArray<FGameplayAbilitySpecHandle> AGKBaseCharacter::GrantAbilities(
 	TArray<TSubclassOf<UGameplayAbility>> AbilitiesToGrant)
 {
@@ -26,7 +27,7 @@ TArray<FGameplayAbilitySpecHandle> AGKBaseCharacter::GrantAbilities(
 		return TArray<FGameplayAbilitySpecHandle>();
 	}
 
-	// Grant each ability and store the handles
+	// Grant each ability and store the handles 
 	TArray<FGameplayAbilitySpecHandle> AbilityHandles;
 	for (TSubclassOf<UGameplayAbility> Ability : AbilitiesToGrant)
 	{
@@ -56,7 +57,19 @@ void AGKBaseCharacter::RemoveAbilities(TArray<FGameplayAbilitySpecHandle> Abilit
 void AGKBaseCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-	
+}
+
+// Called when the character is possessed by a controller 
+void AGKBaseCharacter::PossessedBy(AController* NewController)
+{
+	Super::PossessedBy(NewController);
+
+	// Initialize and grant abilities
+	if (GKAbilitySystemComponent)
+	{
+		GKAbilitySystemComponent->InitAbilityActorInfo(this, this);
+		GrantAbilities(StartingAbilities);
+	}
 }
 
 // Called every frame

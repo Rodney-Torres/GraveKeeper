@@ -24,7 +24,7 @@ public:
 	FGameplayAttributeData MaxHealth;
 	ATTRIBUTE_ACCESSORS_BASIC(UGKBasicAttributeSet, MaxHealth)
 
-	// Damage Attributes
+	// Damage Attribute
 	UPROPERTY(BlueprintReadOnly, Category="Attributes")
 	FGameplayAttributeData Damage;
 	ATTRIBUTE_ACCESSORS_BASIC(UGKBasicAttributeSet, Damage)
