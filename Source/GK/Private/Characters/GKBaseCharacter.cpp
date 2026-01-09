@@ -2,6 +2,7 @@
 
 
 #include "Characters/GKBaseCharacter.h"
+#include "GameplayAbilitySystem/AttributeSets/GKBasicAttributeSet.h"
 
 
 // Sets default values
@@ -11,12 +12,25 @@ AGKBaseCharacter::AGKBaseCharacter()
 	PrimaryActorTick.bCanEverTick = true;
 	
 	GKAbilitySystemComponent = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("GKAbilitySystemComponent"));
-	GKAttributeSet = CreateDefaultSubobject<UAttributeSet>(TEXT("GKAttributeSet"));
+	
+	GKBasicAttributeSet = CreateDefaultSubobject<UGKBasicAttributeSet>(TEXT("GKBasicAttributeSet"));
 }
 
 UAbilitySystemComponent* AGKBaseCharacter::GetAbilitySystemComponent() const
 {
 	return GKAbilitySystemComponent;
+}
+
+// Called every frame
+void AGKBaseCharacter::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+}
+
+// Called to bind functionality to input
+void AGKBaseCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+{
+	Super::SetupPlayerInputComponent(PlayerInputComponent);
 }
 
 TArray<FGameplayAbilitySpecHandle> AGKBaseCharacter::GrantAbilities(
@@ -53,22 +67,17 @@ void AGKBaseCharacter::RemoveAbilities(TArray<FGameplayAbilitySpecHandle> Abilit
 	}
 }
 
+
+
 // Called when the game starts or when spawned
 void AGKBaseCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 	
-}
-
-// Called every frame
-void AGKBaseCharacter::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-}
-
-// Called to bind functionality to input
-void AGKBaseCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
-{
-	Super::SetupPlayerInputComponent(PlayerInputComponent);
+	if (GKAbilitySystemComponent)
+	{
+		// Initialize ASC now that the actor exists (single-player: owner/instigator are local)
+		GKAbilitySystemComponent->InitAbilityActorInfo(this, this);
+	}
 }
 
