@@ -1,9 +1,7 @@
 //  Rodney Torres, Erik Aguiar, and Michael Hernandez All Rights
 
-
 #include "Characters/GKBaseCharacter.h"
 #include "GameplayAbilitySystem/AttributeSets/GKBasicAttributeSet.h"
-
 
 // Sets default values
 AGKBaseCharacter::AGKBaseCharacter()
@@ -12,8 +10,7 @@ AGKBaseCharacter::AGKBaseCharacter()
 	PrimaryActorTick.bCanEverTick = true;
 	
 	GKAbilitySystemComponent = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("GKAbilitySystemComponent"));
-	
-	GKBasicAttributeSet = CreateDefaultSubobject<UGKBasicAttributeSet>(TEXT("GKBasicAttributeSet"));
+	GKBasicAttributeSet = CreateDefaultSubobject<UGKBasicAttributeSet>(TEXT("GKBasicAttributeSet"));	
 }
 
 UAbilitySystemComponent* AGKBaseCharacter::GetAbilitySystemComponent() const
@@ -21,18 +18,7 @@ UAbilitySystemComponent* AGKBaseCharacter::GetAbilitySystemComponent() const
 	return GKAbilitySystemComponent;
 }
 
-// Called every frame
-void AGKBaseCharacter::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-}
-
-// Called to bind functionality to input
-void AGKBaseCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
-{
-	Super::SetupPlayerInputComponent(PlayerInputComponent);
-}
-
+// Grant abilities to the character
 TArray<FGameplayAbilitySpecHandle> AGKBaseCharacter::GrantAbilities(
 	TArray<TSubclassOf<UGameplayAbility>> AbilitiesToGrant)
 {
@@ -41,7 +27,7 @@ TArray<FGameplayAbilitySpecHandle> AGKBaseCharacter::GrantAbilities(
 		return TArray<FGameplayAbilitySpecHandle>();
 	}
 
-	// Grant each ability and store the handles
+	// Grant each ability and store the handles 
 	TArray<FGameplayAbilitySpecHandle> AbilityHandles;
 	for (TSubclassOf<UGameplayAbility> Ability : AbilitiesToGrant)
 	{
@@ -67,17 +53,33 @@ void AGKBaseCharacter::RemoveAbilities(TArray<FGameplayAbilitySpecHandle> Abilit
 	}
 }
 
-
-
 // Called when the game starts or when spawned
 void AGKBaseCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-	
+}
+
+// Called when the character is possessed by a controller 
+void AGKBaseCharacter::PossessedBy(AController* NewController)
+{
+	Super::PossessedBy(NewController);
+
+	// Initialize and grant abilities
 	if (GKAbilitySystemComponent)
 	{
-		// Initialize ASC now that the actor exists (single-player: owner/instigator are local)
 		GKAbilitySystemComponent->InitAbilityActorInfo(this, this);
+		GrantAbilities(StartingAbilities);
 	}
 }
 
+// Called every frame
+void AGKBaseCharacter::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+}
+
+// Called to bind functionality to input
+void AGKBaseCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+{
+	Super::SetupPlayerInputComponent(PlayerInputComponent);
+}
