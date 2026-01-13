@@ -13,12 +13,6 @@
   <component name="ChangeListManager">
     <list default="true" id="082d8bfb-ad7d-4824-9e65-6262e65cb3de" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/.idea.GK/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.GK/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Config/DefaultGameplayTags.ini" beforeDir="false" afterPath="$PROJECT_DIR$/Config/DefaultGameplayTags.ini" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Content/GameplayAbilitySystem/Abilities/GA_Test.uasset" beforeDir="false" afterPath="$PROJECT_DIR$/Content/GameplayAbilitySystem/Abilities/GA_Test.uasset" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Content/Maps/FeatureDevMap.umap" beforeDir="false" afterPath="$PROJECT_DIR$/Content/Maps/FeatureDevMap.umap" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Content/Player/BP_Player.uasset" beforeDir="false" afterPath="$PROJECT_DIR$/Content/Player/BP_Player.uasset" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Source/GK/Private/Characters/GKBaseCharacter.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/Source/GK/Private/Characters/GKBaseCharacter.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Source/GK/Public/Characters/GKBaseCharacter.h" beforeDir="false" afterPath="$PROJECT_DIR$/Source/GK/Public/Characters/GKBaseCharacter.h" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -170,6 +164,9 @@
       <workItem from="1767826665929" duration="1866000" />
       <workItem from="1767879137265" duration="5158000" />
       <workItem from="1767895877605" duration="876000" />
+      <workItem from="1767965047028" duration="187000" />
+      <workItem from="1767966254663" duration="1277000" />
+      <workItem from="1768051981010" duration="740000" />
     </task>
     <servers />
   </component>

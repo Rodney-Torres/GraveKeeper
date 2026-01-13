@@ -9,17 +9,22 @@
 			"Type": "Runtime",
 			"LoadingPhase": "Default",
 			"AdditionalDependencies": [
-				"Engine"
+				"Engine",
+				"AIModule"
 			]
 		}
 	],
-"Plugins": [
-  { "Name": "GameplayAbilities", "Enabled": true },
-
-  {
-    "Name": "ModelingToolsEditorMode",
-    "Enabled": true,
-    "TargetAllowList": [ "Editor" ]
-  }
-]
+	"Plugins": [
+		{
+			"Name": "GameplayAbilities",
+			"Enabled": true
+		},
+		{
+			"Name": "ModelingToolsEditorMode",
+			"Enabled": true,
+			"TargetAllowList": [
+				"Editor"
+			]
+		}
+	]
 }
