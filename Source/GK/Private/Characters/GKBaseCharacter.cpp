@@ -2,15 +2,19 @@
 
 #include "Characters/GKBaseCharacter.h"
 #include "GameplayAbilitySystem/AttributeSets/GKBasicAttributeSet.h"
+#include "GameplayAbilitySystem/AttributeSets/GKCombatAttributeSet.h"
 
 // Sets default values
 AGKBaseCharacter::AGKBaseCharacter()
 {
 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
-	
+
+	// Create the Ability System Component and Attribute Sets
 	GKAbilitySystemComponent = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("GKAbilitySystemComponent"));
-	GKBasicAttributeSet = CreateDefaultSubobject<UGKBasicAttributeSet>(TEXT("GKBasicAttributeSet"));	
+	GKBasicAttributeSet = CreateDefaultSubobject<UGKBasicAttributeSet>(TEXT("GKBasicAttributeSet"));
+	GKCombatAttributeSet = CreateDefaultSubobject<UGKCombatAttributeSet>(TEXT("GKCombatAttributeSet"));
+
 }
 
 UAbilitySystemComponent* AGKBaseCharacter::GetAbilitySystemComponent() const
