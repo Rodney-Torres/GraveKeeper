@@ -20,10 +20,17 @@ public:
 	//Constructor that allows us to override a component inside our parent class
 	AGKAIController(const FObjectInitializer& ObjectInitializer);
 	
+	//~ Begin IGenericTeamAgentInterface Interface
+	virtual ETeamAttitude::Type GetTeamAttitudeTowards(const AActor& Other) const;
+	//~ End IGenericTeamAgentInterface Interface
+	
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	UAIPerceptionComponent* EnemyPerceptionComponent;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	UAISenseConfig_Sight* AISenseConfig_Sight;
+	
+	UFUNCTION()
+	virtual void OnEnemyPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus);
 };

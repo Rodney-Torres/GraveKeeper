@@ -29,6 +29,27 @@ AGKAIController::AGKAIController(const FObjectInitializer& ObjectInitializer)
 	
 	EnemyPerceptionComponent = CreateDefaultSubobject<UAIPerceptionComponent>("EnemyPerceptionComponent");
 	EnemyPerceptionComponent->ConfigureSense(*AISenseConfig_Sight); //telling our perception component to use the sight config we just created
-	EnemyPerceptionComponent->SetDominantSense(UAISenseConfig_Sight::StaticClass()); //
+	EnemyPerceptionComponent->SetDominantSense(UAISenseConfig_Sight::StaticClass()); //Priority when multiple senses are used
+	EnemyPerceptionComponent->OnTargetPerceptionUpdated.AddUniqueDynamic(this, &ThisClass::OnEnemyPerceptionUpdated); //Binding our function to the perception updated delegate
+}
+
+ETeamAttitude::Type AGKAIController::GetTeamAttitudeTowards(const AActor& Other) const
+{
+	const APawn* PawnToCheck = Cast<const APawn>(&Other);
+	
+	const IGenericTeamAgentInterface* OtherTeamAgent = Cast<const IGenericTeamAgentInterface>(PawnToCheck->GetController());
+	
+	//If we make it inside this if check then we know that the pawn is a enemy of our AI
+	if (OtherTeamAgent && OtherTeamAgent->GetGenericTeamId() != GetGenericTeamId())
+	{
+		return ETeamAttitude::Hostile;
+	}
+
+	return ETeamAttitude::Friendly;
+}
+
+
+void AGKAIController::OnEnemyPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus)
+{
 	
 }

@@ -11,7 +11,12 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="082d8bfb-ad7d-4824-9e65-6262e65cb3de" name="Changes" comment="" />
+    <list default="true" id="082d8bfb-ad7d-4824-9e65-6262e65cb3de" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/.idea.GK/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.GK/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Content/EnemyCharacters/Zombie/AIC_Zombie.uasset" beforeDir="false" afterPath="$PROJECT_DIR$/Content/EnemyCharacters/Zombie/AIC_Zombie.uasset" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Source/GK/Private/Controllers/GKAIController.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/Source/GK/Private/Controllers/GKAIController.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Source/GK/Public/Controllers/GKAIController.h" beforeDir="false" afterPath="$PROJECT_DIR$/Source/GK/Public/Controllers/GKAIController.h" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -180,6 +185,8 @@
       <workItem from="1768051981010" duration="740000" />
       <workItem from="1768270262663" duration="2000" />
       <workItem from="1768270296998" duration="2000" />
+      <workItem from="1768407744621" duration="598000" />
+      <workItem from="1768450339589" duration="244000" />
     </task>
     <servers />
   </component>
