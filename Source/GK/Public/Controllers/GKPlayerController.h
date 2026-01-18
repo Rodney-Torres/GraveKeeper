@@ -18,7 +18,7 @@ class GK_API AGKPlayerController : public APlayerController, public IGenericTeam
 	public:
 	AGKPlayerController();
 	
-	virtual FGenericTeamId GetGenericTeamId() const;
+	virtual FGenericTeamId GetGenericTeamId() const override;
 	
 private:
 	FGenericTeamId PlayerTeamId;

@@ -5,6 +5,7 @@
 #include "Navigation/CrowdFollowingComponent.h"
 #include "Perception/AIPerceptionComponent.h"
 #include "Perception/AISenseConfig_Sight.h"
+#include "BehaviorTree/BlackboardComponent.h"
 
 #include "GKDebugHelper.h"
 
@@ -39,11 +40,9 @@ ETeamAttitude::Type AGKAIController::GetTeamAttitudeTowards(const AActor& Other)
 {
 	const APawn* PawnToCheck = Cast<const APawn>(&Other);
 	
-	//casting from the controller and the type were casting to is IGenericTeamAgentInterface
-	const IGenericTeamAgentInterface* OtherTeamAgent = Cast<const IGenericTeamAgentInterface>(PawnToCheck->GetController());
+	const IGenericTeamAgentInterface* OtherTeamAgent = Cast<const IGenericTeamAgentInterface>(PawnToCheck->GetController()); //casting from the controller and the type were casting to is IGenericTeamAgentInterface
 	
-	//If the other actor does not have the same team ID, we consider them hostile
-	if (OtherTeamAgent && OtherTeamAgent->GetGenericTeamId() != GetGenericTeamId())
+	if (OtherTeamAgent && OtherTeamAgent->GetGenericTeamId() != GetGenericTeamId()) //If the other actor does not have the same team ID, we consider them hostile
 	{
 		return ETeamAttitude::Hostile;
 	}
@@ -55,6 +54,9 @@ void AGKAIController::OnEnemyPerceptionUpdated(AActor* Actor, FAIStimulus Stimul
 {
 	if (Stimulus.WasSuccessfullySensed() && Actor) // if inside an actor was sensed by our AI
 	{
-		Debug::Print(Actor->GetActorNameOrLabel() + TEXT(" was sensed"), FColor::Green);
+		if (UBlackboardComponent* BlackboardComponent = GetBlackboardComponent()) //if we have a get a valid blackboard component
+		{
+			BlackboardComponent->SetValueAsObject(FName("TargetActor"), Actor); //we set the value of our blackboard key TargetActor to the actor that was sensed
+		}
 	}
 }

@@ -21,7 +21,7 @@ public:
 	AGKAIController(const FObjectInitializer& ObjectInitializer);
 	
 	//~ Begin IGenericTeamAgentInterface Interface
-	virtual ETeamAttitude::Type GetTeamAttitudeTowards(const AActor& Other) const;
+	virtual ETeamAttitude::Type GetTeamAttitudeTowards(const AActor& Other) const override;
 	//~ End IGenericTeamAgentInterface Interface
 	
 protected:

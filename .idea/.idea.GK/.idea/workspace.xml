@@ -13,9 +13,13 @@
   <component name="ChangeListManager">
     <list default="true" id="082d8bfb-ad7d-4824-9e65-6262e65cb3de" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/.idea.GK/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.GK/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Content/FirstPerson/Blueprints/BP_FirstPersonGameMode.uasset" beforeDir="false" afterPath="$PROJECT_DIR$/Content/FirstPerson/Blueprints/BP_FirstPersonGameMode.uasset" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Content/FirstPerson/Blueprints/BP_FirstPersonPlayerController.uasset" beforeDir="false" afterPath="$PROJECT_DIR$/Content/FirstPerson/Blueprints/BP_FirstPersonPlayerController.uasset" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Content/EnemyCharacters/AIC_Enemy_Base.uasset" beforeDir="false" afterPath="$PROJECT_DIR$/Content/EnemyCharacters/AIC_Enemy_Base.uasset" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Content/EnemyCharacters/Zombie/AIC_Zombie.uasset" beforeDir="false" afterPath="$PROJECT_DIR$/Content/EnemyCharacters/Zombie/AIC_Zombie.uasset" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Content/EnemyCharacters/Zombie/BP_Enemy_Zombie.uasset" beforeDir="false" afterPath="$PROJECT_DIR$/Content/EnemyCharacters/Zombie/BP_Enemy_Zombie.uasset" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Content/__ExternalActors__/Maps/FeatureDevMap/6/YB/Q742M8ZQWZE33ME6VRPHR8.uasset" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/Source/GK/Private/Controllers/GKAIController.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/Source/GK/Private/Controllers/GKAIController.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Source/GK/Public/Controllers/GKAIController.h" beforeDir="false" afterPath="$PROJECT_DIR$/Source/GK/Public/Controllers/GKAIController.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Source/GK/Public/Controllers/GKPlayerController.h" beforeDir="false" afterPath="$PROJECT_DIR$/Source/GK/Public/Controllers/GKPlayerController.h" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -188,7 +192,7 @@
       <workItem from="1768270296998" duration="2000" />
       <workItem from="1768407744621" duration="598000" />
       <workItem from="1768450339589" duration="452000" />
-      <workItem from="1768773850008" duration="3660000" />
+      <workItem from="1768773850008" duration="6420000" />
     </task>
     <servers />
   </component>
