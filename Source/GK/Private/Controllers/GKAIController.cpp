@@ -13,11 +13,6 @@ AGKAIController::AGKAIController(const FObjectInitializer& ObjectInitializer)
 	//Inside this initializer list we override the path following component with our crowd following component.
 	: Super(ObjectInitializer.SetDefaultSubobjectClass<UCrowdFollowingComponent>("PathFollowingComponent"))
 {
-	//We retrieve our path following component with the overridden type and save it in a local variable then if this is valid we print a message to test
-	if (UCrowdFollowingComponent* CrowdComp = Cast<UCrowdFollowingComponent>(GetPathFollowingComponent()))
-	{
-		Debug::Print(TEXT("CrowdFollowingComponent valid"), FColor::Green);
-	}
 	
 	//How to construct our component and save it as our AISenseConfig_Sight. Then we set its properties.
 	AISenseConfig_Sight = CreateDefaultSubobject<UAISenseConfig_Sight>("EnemySenseConfig_Sight");
@@ -47,6 +42,30 @@ ETeamAttitude::Type AGKAIController::GetTeamAttitudeTowards(const AActor& Other)
 		return ETeamAttitude::Hostile;
 	}
 	return ETeamAttitude::Friendly;
+}
+
+void AGKAIController::BeginPlay()
+{
+	Super::BeginPlay();
+	
+	if (UCrowdFollowingComponent* CrowdComp = Cast<UCrowdFollowingComponent>(GetPathFollowingComponent())) //We cast from our path following component to our crowd following component to access detour crowd avoidance features
+	{
+		CrowdComp->SetCrowdSimulationState(bEnableDetourCrowdAvoidance? ECrowdSimulationState::Enabled : ECrowdSimulationState::Disabled); //Enabling or disabling detour crowd avoidance based on our variable
+
+		switch (DetourCrowdAvoidanceQuality) // Setting the quality of our crowd avoidance depending on our variable
+		{
+		case 1: CrowdComp->SetCrowdAvoidanceQuality(ECrowdAvoidanceQuality::Low);    break;
+		case 2: CrowdComp->SetCrowdAvoidanceQuality(ECrowdAvoidanceQuality::Medium); break;
+		case 3: CrowdComp->SetCrowdAvoidanceQuality(ECrowdAvoidanceQuality::Good);   break;
+		case 4: CrowdComp->SetCrowdAvoidanceQuality(ECrowdAvoidanceQuality::High);   break;
+		default:
+			break;
+		}
+		
+		CrowdComp->SetAvoidanceGroup(1); //Setting our AI to be in avoidance group 1
+		CrowdComp->SetGroupsToAvoid(1); //Setting our AI to avoid other agents in group 1
+		CrowdComp->SetCrowdCollisionQueryRange(CollisionQueryRange); //Setting how far ahead our AI will look for potential collisions
+	}
 }
 
 
