@@ -1,6 +1,8 @@
 //  Rodney Torres, Erik Aguiar, and Michael Hernandez All Rights
 
 #include "Characters/GKBaseCharacter.h"
+
+#include "GameplayAbilitySystem/GKGameplayAbility.h"
 #include "GameplayAbilitySystem/AttributeSets/GKBasicAttributeSet.h"
 #include "GameplayAbilitySystem/AttributeSets/GKCombatAttributeSet.h"
 
@@ -26,6 +28,7 @@ UAbilitySystemComponent* AGKBaseCharacter::GetAbilitySystemComponent() const
 TArray<FGameplayAbilitySpecHandle> AGKBaseCharacter::GrantAbilities(
 	TArray<TSubclassOf<UGameplayAbility>> AbilitiesToGrant)
 {
+	// Ensure we have a valid ASC
 	if (!GKAbilitySystemComponent)
 	{
 		return TArray<FGameplayAbilitySpecHandle>();
@@ -35,8 +38,21 @@ TArray<FGameplayAbilitySpecHandle> AGKBaseCharacter::GrantAbilities(
 	TArray<FGameplayAbilitySpecHandle> AbilityHandles;
 	for (TSubclassOf<UGameplayAbility> Ability : AbilitiesToGrant)
 	{
+		// Check for null ability
+		if (!Ability)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("GrantAbilities: encountered null ability in StartingAbilities for %s"), *GetName());
+			continue;
+		}
+		// Determine input ID for the ability by checking its CDO (Class Default Object)
+		int32 InputID = -1;
+		if (const UGKGameplayAbility* GKAbilityCDO = GetDefault<UGKGameplayAbility>(Ability))
+		{
+			InputID = static_cast<int32>(GKAbilityCDO->AbilityInputID);
+		}
+		// Grant the ability and store the handle
 		FGameplayAbilitySpecHandle SpecHandle = GKAbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(
-			Ability, 1, -1, this)
+			Ability, 1, InputID, this)
 		);
 		AbilityHandles.Add(SpecHandle);
 	}
