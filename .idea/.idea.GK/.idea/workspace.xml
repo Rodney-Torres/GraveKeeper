@@ -13,12 +13,46 @@
   <component name="ChangeListManager">
     <list default="true" id="082d8bfb-ad7d-4824-9e65-6262e65cb3de" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/.idea.GK/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.GK/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Config/DefaultEngine.ini" beforeDir="false" afterPath="$PROJECT_DIR$/Config/DefaultEngine.ini" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Content/EnemyCharacters/BP_Enemy_Base.uasset" beforeDir="false" afterPath="$PROJECT_DIR$/Content/EnemyCharacters/BP_Enemy_Base.uasset" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Content/EnemyCharacters/Zombie/AIC_Zombie.uasset" beforeDir="false" afterPath="$PROJECT_DIR$/Content/EnemyCharacters/Zombie/AIC_Zombie.uasset" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Content/EnemyCharacters/Zombie/BP_Zombie.uasset" beforeDir="false" afterPath="$PROJECT_DIR$/Content/EnemyCharacters/Zombie/BP_Zombie.uasset" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Source/GK/Private/Controllers/GKAIController.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/Source/GK/Private/Controllers/GKAIController.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Source/GK/Public/Controllers/GKAIController.h" beforeDir="false" afterPath="$PROJECT_DIR$/Source/GK/Public/Controllers/GKAIController.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Content/Characters/Mannequins/Anims/Unarmed/ABP_Unarmed.uasset" beforeDir="false" afterPath="$PROJECT_DIR$/Content/Characters/Mannequins/Anims/Unarmed/ABP_Unarmed.uasset" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Content/EnemyCharacters/AIC_Enemy_Base1.uasset" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Content/EnemyCharacters/BB_Enemy_Base.uasset" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Content/EnemyCharacters/BP_Enemy_Base1.uasset" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Content/EnemyCharacters/BTService/BTService_GetAndSetSpawnLocation.uasset" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Content/EnemyCharacters/BTService/BTService_GetDistanceTo.uasset" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Content/EnemyCharacters/BTService/BTService_SetHasLOS.uasset" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Content/EnemyCharacters/Enemy/AI/AIC_Enemy_Base.uasset" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Content/EnemyCharacters/Enemy/AI/BPI_EnemyAI.uasset" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Content/EnemyCharacters/Enemy/AI/BP_PatrolRoute.uasset" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Content/EnemyCharacters/Enemy/AI/BT_Enemy_Base.uasset" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Content/EnemyCharacters/Enemy/AI/Decorators/BTD_HasPatrolRoute.uasset" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Content/EnemyCharacters/Enemy/AI/Decorators/BTD_HasWeapon.uasset" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Content/EnemyCharacters/Enemy/AI/Enums/E_AIState.uasset" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Content/EnemyCharacters/Enemy/AI/Enums/E_MovementSpeed.uasset" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Content/EnemyCharacters/Enemy/AI/Tasks/BTT_ClearFocus.uasset" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Content/EnemyCharacters/Enemy/AI/Tasks/BTT_DefaultAttack.uasset" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Content/EnemyCharacters/Enemy/AI/Tasks/BTT_DeleteWeapon.uasset" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Content/EnemyCharacters/Enemy/AI/Tasks/BTT_FocusTarget.uasset" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Content/EnemyCharacters/Enemy/AI/Tasks/BTT_MoveAlongPatrolRoute.uasset" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Content/EnemyCharacters/Enemy/AI/Tasks/BTT_SetMovementSpeed.uasset" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Content/EnemyCharacters/Enemy/AI/Tasks/BTT_SpawnWeapon.uasset" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Content/EnemyCharacters/Enemy/AnimationMontages/AM_Zombie_Attack1.uasset" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Content/EnemyCharacters/Enemy/AnimationMontages/AM_Zombie_Scream_DeleteWeapon.uasset" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Content/EnemyCharacters/Enemy/AnimationMontages/AM_Zombie_Scream_SpawnWeapon.uasset" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Content/EnemyCharacters/Enemy/BP_Enemy_Base.uasset" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Content/EnemyCharacters/Enemy/Weapons/BP_RightHand.uasset" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Content/EnemyCharacters/Zombie/AIC_Zombie.uasset" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Content/EnemyCharacters/Zombie/Abilities/GA_Zombie_Melee1.uasset" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Content/EnemyCharacters/Zombie/Abilities/GA_Zombie_Melee2.uasset" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Content/EnemyCharacters/Zombie/BP_Enemy_Zombie.uasset" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Content/EnemyCharacters/Zombie/BP_Zombie.uasset" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Content/EnemyCharacters/Zombie/BT_Zombie.uasset" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Content/EnemyCharacters/Zombie/Montages/AM_ZombieMeleeAttack_1.uasset" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Content/EnemyCharacters/Zombie/Montages/AM_ZombieMeleeAttack_2.uasset" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Content/Maps/FeatureDevMap.umap" beforeDir="false" afterPath="$PROJECT_DIR$/Content/Maps/FeatureDevMap.umap" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Content/Player/BP_Player.uasset" beforeDir="false" afterPath="$PROJECT_DIR$/Content/Player/BP_Player.uasset" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Content/__ExternalActors__/Maps/FeatureDevMap/2/03/OUC1H8FZUMV956NY7R6Q8S.uasset" beforeDir="false" afterPath="$PROJECT_DIR$/Content/__ExternalActors__/Maps/FeatureDevMap/2/03/OUC1H8FZUMV956NY7R6Q8S.uasset" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Content/__ExternalActors__/Maps/FeatureDevMap/C/5C/2MDK0JC1FHV5PALBA285I5.uasset" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Content/__ExternalActors__/Maps/FeatureDevMap/E/PR/YUEN4ETXDD8HW4OY06C780.uasset" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -78,7 +112,7 @@
     &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;rtorres-branch&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;RT-Branch&quot;,
     &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
     &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
     &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
@@ -199,6 +233,10 @@
       <workItem from="1768450339589" duration="452000" />
       <workItem from="1768773850008" duration="6644000" />
       <workItem from="1768794355904" duration="2615000" />
+      <workItem from="1769606888016" duration="1502000" />
+      <workItem from="1769630403997" duration="3129000" />
+      <workItem from="1769952685907" duration="3427000" />
+      <workItem from="1770038986070" duration="2359000" />
     </task>
     <servers />
   </component>
