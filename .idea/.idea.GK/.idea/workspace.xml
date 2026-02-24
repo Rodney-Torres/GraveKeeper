@@ -13,8 +13,27 @@
   <component name="ChangeListManager">
     <list default="true" id="082d8bfb-ad7d-4824-9e65-6262e65cb3de" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/.idea.GK/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.GK/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Content/EnemyCharacters/Enemies/Zombie_Range/BP_Enemy_Ranged.uasset" beforeDir="false" afterPath="$PROJECT_DIR$/Content/EnemyCharacters/Enemies/Zombie_Range/BP_Enemy_Ranged.uasset" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Content/__ExternalActors__/Maps/FeatureDevMap/2/XT/PIG8YHR07H0EINVBGN2QVE.uasset" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Config/DefaultEngine.ini" beforeDir="false" afterPath="$PROJECT_DIR$/Config/DefaultEngine.ini" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Config/DefaultGameplayTags.ini" beforeDir="false" afterPath="$PROJECT_DIR$/Config/DefaultGameplayTags.ini" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Content/Assets/ZombieAnimationPack/Animations/Mannequin_UE5/anim_Idle_B.uasset" beforeDir="false" afterPath="$PROJECT_DIR$/Content/Assets/ZombieAnimationPack/Animations/Mannequin_UE5/anim_Idle_B.uasset" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Content/EnemyCharacters/AIC_Enemy_Base.uasset" beforeDir="false" afterPath="$PROJECT_DIR$/Content/EnemyCharacters/AIC_Enemy_Base.uasset" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Content/EnemyCharacters/BP_Enemy_Base.uasset" beforeDir="false" afterPath="$PROJECT_DIR$/Content/EnemyCharacters/BP_Enemy_Base.uasset" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Content/EnemyCharacters/BTTasks/BTT_Aggro_Alert.uasset" beforeDir="false" afterPath="$PROJECT_DIR$/Content/EnemyCharacters/BTTasks/BTT_Aggro_Alert.uasset" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Content/EnemyCharacters/BTTasks/BTT_DefaultAttack.uasset" beforeDir="false" afterPath="$PROJECT_DIR$/Content/EnemyCharacters/BTTasks/BTT_DefaultAttack.uasset" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Content/EnemyCharacters/BTTasks/BTT_FocusTarget.uasset" beforeDir="false" afterPath="$PROJECT_DIR$/Content/EnemyCharacters/BTTasks/BTT_FocusTarget.uasset" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Content/EnemyCharacters/BTTasks/BTT_MoveToIdealRange.uasset" beforeDir="false" afterPath="$PROJECT_DIR$/Content/EnemyCharacters/BTTasks/BTT_MoveToIdealRange.uasset" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Content/EnemyCharacters/BTTasks/BTT_RotateToTargetSlowly.uasset" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Content/EnemyCharacters/BTrees/BB_Enemy_Base.uasset" beforeDir="false" afterPath="$PROJECT_DIR$/Content/EnemyCharacters/BTrees/BB_Enemy_Base.uasset" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Content/EnemyCharacters/Enemies/Tutorial_Enemies/BP_Tutorial_Enemy_Melee.uasset" beforeDir="false" afterPath="$PROJECT_DIR$/Content/EnemyCharacters/Enemies/Tutorial_Enemies/BP_Tutorial_Enemy_Melee.uasset" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Content/EnemyCharacters/Enemies/Zombie_Melee/AnimBP/ABP_Enemy_Zombie_Melee.uasset" beforeDir="false" afterPath="$PROJECT_DIR$/Content/EnemyCharacters/Enemies/Zombie_Melee/AnimBP/ABP_Enemy_Zombie_Melee.uasset" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Content/EnemyCharacters/Enemies/Zombie_Melee/BP_Enemy_Zombie_Melee.uasset" beforeDir="false" afterPath="$PROJECT_DIR$/Content/EnemyCharacters/Enemies/Zombie_Melee/BP_Enemy_Zombie_Melee.uasset" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Content/EnemyCharacters/Enemies/Zombie_Melee/BT_Enemy_Zombie_Melee.uasset" beforeDir="false" afterPath="$PROJECT_DIR$/Content/EnemyCharacters/Enemies/Zombie_Melee/BT_Enemy_Zombie_Melee.uasset" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Content/GameplayAbilitySystem/Abilities/GA_Zombie_MeleeAttack.uasset" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Content/Maps/FeatureDevMap.umap" beforeDir="false" afterPath="$PROJECT_DIR$/Content/Maps/FeatureDevMap.umap" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Content/__ExternalActors__/Maps/FeatureDevMap/2/03/OUC1H8FZUMV956NY7R6Q8S.uasset" beforeDir="false" afterPath="$PROJECT_DIR$/Content/__ExternalActors__/Maps/FeatureDevMap/2/03/OUC1H8FZUMV956NY7R6Q8S.uasset" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Content/__ExternalActors__/Maps/FeatureDevMap/6/11/5C0WGL10GUSFCYL6N7XBDL.uasset" beforeDir="false" afterPath="$PROJECT_DIR$/Content/__ExternalActors__/Maps/FeatureDevMap/6/11/5C0WGL10GUSFCYL6N7XBDL.uasset" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Content/__ExternalActors__/Maps/FeatureDevMap/8/0O/RV8ULXQLWH53AKHQLLU6I6.uasset" beforeDir="false" afterPath="$PROJECT_DIR$/Content/__ExternalActors__/Maps/FeatureDevMap/8/0O/RV8ULXQLWH53AKHQLLU6I6.uasset" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Content/__ExternalActors__/Maps/FeatureDevMap/D/A2/L866ESO61ILVRNB6I14RXG.uasset" beforeDir="false" afterPath="$PROJECT_DIR$/Content/__ExternalActors__/Maps/FeatureDevMap/D/A2/L866ESO61ILVRNB6I14RXG.uasset" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -201,7 +220,8 @@
       <workItem from="1770038986070" duration="2359000" />
       <workItem from="1770314407465" duration="1071000" />
       <workItem from="1770643813980" duration="1409000" />
-      <workItem from="1771248955349" duration="805000" />
+      <workItem from="1771248955349" duration="1410000" />
+      <workItem from="1771950203396" duration="1720000" />
     </task>
     <servers />
   </component>
