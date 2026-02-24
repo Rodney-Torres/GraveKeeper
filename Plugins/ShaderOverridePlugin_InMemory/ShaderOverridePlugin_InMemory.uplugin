@@ -1,0 +1,29 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "1.0.0",
+	"FriendlyName": "ShaderOverridePlugin_InMemory",
+	"Description": "Overrides engine shaders, allowing for user customization.",
+	"Category": "Rendering",
+	"CreatedBy": "Hyperdyne Systems LLC",
+	"CreatedByURL": "https://patreon.com/HiddenEmpireGame",
+	"DocsURL": "",
+	"MarketplaceURL": "",
+	"SupportURL": "",
+	"CanContainContent": true,
+	"IsBetaVersion": false,
+	"IsExperimentalVersion": false,
+	"Installed": false,
+	"Modules": [
+		{
+			"Name": "ShaderOverridePlugin_InMemory",
+			"Type": "Runtime",
+			"LoadingPhase": "EarliestPossible",
+			"WhitelistPlatforms": [
+				"Win64",
+				"Linux",
+				"Mac"
+			]
+		}
+	]
+}
