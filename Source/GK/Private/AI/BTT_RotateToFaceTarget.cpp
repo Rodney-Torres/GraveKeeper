@@ -9,7 +9,7 @@
 UBTT_RotateToFaceTarget::UBTT_RotateToFaceTarget()
 {
 	NodeName = TEXT("Native Rotate to Face Target Actor");
-	AnglePrecision = 10.0f;
+	AnglePrecision = 20.0f;
 	RotationInterpSpeed = 5.0f;
 
 	bNotifyTick = true;
