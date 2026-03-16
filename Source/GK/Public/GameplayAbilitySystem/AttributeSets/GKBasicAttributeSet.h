@@ -24,6 +24,15 @@ public:
 	FGameplayAttributeData MaxHealth;
 	ATTRIBUTE_ACCESSORS_BASIC(UGKBasicAttributeSet, MaxHealth)
 
+	// Healing Charges
+	UPROPERTY(BlueprintReadOnly, Category="Attributes")
+	FGameplayAttributeData HealCharges;
+	ATTRIBUTE_ACCESSORS_BASIC(UGKBasicAttributeSet, HealCharges)
+
+	UPROPERTY(BlueprintReadOnly, Category="Attributes")
+	FGameplayAttributeData MaxHealCharges;
+	ATTRIBUTE_ACCESSORS_BASIC(UGKBasicAttributeSet, MaxHealCharges)
+
 	// Damage Attribute
 	UPROPERTY(BlueprintReadOnly, Category="Attributes")
 	FGameplayAttributeData Damage;

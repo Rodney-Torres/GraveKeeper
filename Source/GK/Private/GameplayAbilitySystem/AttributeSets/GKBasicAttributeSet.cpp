@@ -8,6 +8,8 @@ UGKBasicAttributeSet::UGKBasicAttributeSet()
 	Health = 100.f;
 	MaxHealth = 100.f;
 	Damage = 0.f;
+	HealCharges = 3;
+	MaxHealCharges = 3;
 }
 
 // --- Clamp health to its maximum value before changes ---
@@ -19,6 +21,10 @@ void UGKBasicAttributeSet::PreAttributeBaseChange(const FGameplayAttribute& Attr
 	if (Attribute == GetHealthAttribute())
 	{
 		NewValue = FMath::Clamp(NewValue, 0.f, GetMaxHealth());
+	}
+	if (Attribute == GetHealChargesAttribute())
+	{
+		NewValue = FMath::Clamp(NewValue, 0.f, GetMaxHealCharges());
 	}
 }
 
@@ -43,6 +49,11 @@ void UGKBasicAttributeSet::PostGameplayEffectExecute(const struct FGameplayEffec
 	if (Data.EvaluatedData.Attribute == GetHealthAttribute())
 	{
 		SetHealth(GetHealth());
+	}
+	// Update healing charges after gameplay effect execution
+	if (Data.EvaluatedData.Attribute == GetHealChargesAttribute())
+	{
+		SetHealCharges(GetHealCharges());
 	}
 }
 
