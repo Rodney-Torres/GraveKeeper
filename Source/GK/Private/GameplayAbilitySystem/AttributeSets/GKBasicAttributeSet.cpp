@@ -3,7 +3,6 @@
 #include "GameplayAbilitySystem/AttributeSets/GKBasicAttributeSet.h"
 
 #include "AbilitySystemBlueprintLibrary.h"
-#include "GameplayCueNotifyTypes.h"
 #include "GameplayEffectExtension.h"
 
 UGKBasicAttributeSet::UGKBasicAttributeSet()
@@ -45,8 +44,8 @@ void UGKBasicAttributeSet::PostGameplayEffectExecute(const struct FGameplayEffec
 		// Subtract damage from health
 		SetHealth(GetHealth() - TotalDamage);
 
-		AActor* SourceActor = Data.EffectSpec.GetContext().GetEffectCauser();
-		AActor* TargetActor = GetOwningActor();
+		// AActor* SourceActor = Data.EffectSpec.GetContext().GetEffectCauser();
+		// AActor* TargetActor = GetOwningActor();
 
 		// TODO: Activate hit reaction ability if health was modified
 		// if (Data.EffectSpec.Def->GetAssetTags().HasTag(FGameplayTag::RequestGameplayTag("Effects.HitReaction"))
@@ -58,16 +57,16 @@ void UGKBasicAttributeSet::PostGameplayEffectExecute(const struct FGameplayEffec
 		// }
 
 		// Get Damage Direction
-		if (SourceActor && TargetActor)
-		{
-			FGameplayEventData EventData;
-			EventData.EventTag = FGameplayTag::RequestGameplayTag("Event.UI.DamageIndicator");
-			EventData.Instigator = SourceActor;
-			EventData.Target = TargetActor;
-			EventData.EventMagnitude = TotalDamage;
+		// if (SourceActor && TargetActor)
+		// {
+		// 	FGameplayEventData EventData;
+		// 	EventData.EventTag = FGameplayTag::RequestGameplayTag("Event.UI.DamageIndicator");
+		// 	EventData.Instigator = SourceActor;
+		// 	EventData.Target = TargetActor;
+		// 	EventData.EventMagnitude = TotalDamage;
 
-			UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(TargetActor, EventData.EventTag, EventData);
-		}
+		// 	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(TargetActor, EventData.EventTag, EventData);
+		// }
 	}
 
 	// Update health after gameplay effect execution
