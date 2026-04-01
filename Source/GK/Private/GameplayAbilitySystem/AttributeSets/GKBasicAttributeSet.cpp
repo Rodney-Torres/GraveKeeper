@@ -55,7 +55,7 @@ void UGKBasicAttributeSet::PostGameplayEffectExecute(const struct FGameplayEffec
 		// 	HitReactionTagContainer.AddTag(FGameplayTag::RequestGameplayTag("GameplayAbility.HitReaction"));
 		// 	GetOwningAbilitySystemComponent()->TryActivateAbilitiesByTag(HitReactionTagContainer);
 		// }
-
+		
 		// Get Damage Direction
 		// if (SourceActor && TargetActor)
 		// {
