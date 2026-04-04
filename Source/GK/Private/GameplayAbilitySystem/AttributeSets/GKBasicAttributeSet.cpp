@@ -42,7 +42,7 @@ void UGKBasicAttributeSet::PostGameplayEffectExecute(const struct FGameplayEffec
 		SetDamage(0.f);
 
 		// Subtract damage from health
-		SetHealth(GetHealth() - TotalDamage);
+		if (TotalDamage > 0.f) SetHealth(GetHealth() - TotalDamage);
 
 		// AActor* SourceActor = Data.EffectSpec.GetContext().GetEffectCauser();
 		// AActor* TargetActor = GetOwningActor();
@@ -85,6 +85,22 @@ void UGKBasicAttributeSet::PostGameplayEffectExecute(const struct FGameplayEffec
 void UGKBasicAttributeSet::PostAttributeBaseChange(const FGameplayAttribute& Attribute, float OldValue, float NewValue) const
 {
 	Super::PostAttributeBaseChange(Attribute, OldValue, NewValue);
+
+	if (Attribute == GetHealthAttribute())
+	{
+		// Trigger damage indicator cue if health was modified
+		if (NewValue < OldValue)
+		{
+			FGameplayCueParameters Params;
+			Params.RawMagnitude = OldValue - NewValue;
+			Params.Instigator = GetOwningActor();
+
+			GetOwningAbilitySystemComponent()-> ExecuteGameplayCue(
+				FGameplayTag::RequestGameplayTag(FName("GameplayCue.DamageIndicator")),
+				Params
+			);
+		}
+	}
 
 	// Logic for attribute changes like handling Death Ability
 }
