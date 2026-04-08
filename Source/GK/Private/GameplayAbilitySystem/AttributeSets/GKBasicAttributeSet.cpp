@@ -12,21 +12,26 @@ UGKBasicAttributeSet::UGKBasicAttributeSet()
 	Damage = 0.f;
 	HealCharges = 3;
 	MaxHealCharges = 3;
+	Souls = 0.f;
+	MaxSouls = 99999.f;
 }
 
 // --- Clamp health to its maximum value before changes ---
 void UGKBasicAttributeSet::PreAttributeBaseChange(const FGameplayAttribute& Attribute, float& NewValue) const
 {
 	Super::PreAttributeBaseChange(Attribute, NewValue);
-
-	// Clamp health to its maximum value
-	if (Attribute == GetHealthAttribute())
+	
+	if (Attribute == GetHealthAttribute()) // Clamp health to its maximum value
 	{
 		NewValue = FMath::Clamp(NewValue, 0.f, GetMaxHealth());
 	}
-	if (Attribute == GetHealChargesAttribute())
+	if (Attribute == GetHealChargesAttribute()) // Clamp health charges to its max
 	{
 		NewValue = FMath::Clamp(NewValue, 0.f, GetMaxHealCharges());
+	}
+	if (Attribute == GetSoulsAttribute()) // Clamp currency to its max
+	{
+		NewValue = FMath::Clamp(NewValue, 0.f, GetMaxSouls());
 	}
 }
 
@@ -69,15 +74,18 @@ void UGKBasicAttributeSet::PostGameplayEffectExecute(const struct FGameplayEffec
 		// }
 	}
 
-	// Update health after gameplay effect execution
+	// Update attributes after Gameplay Effect execution
 	if (Data.EvaluatedData.Attribute == GetHealthAttribute())
 	{
 		SetHealth(GetHealth());
 	}
-	// Update healing charges after gameplay effect execution
 	if (Data.EvaluatedData.Attribute == GetHealChargesAttribute())
 	{
 		SetHealCharges(GetHealCharges());
+	}
+	if (Data.EvaluatedData.Attribute == GetSoulsAttribute())
+	{
+		SetSouls(GetSouls());
 	}
 }
 
@@ -86,9 +94,10 @@ void UGKBasicAttributeSet::PostAttributeBaseChange(const FGameplayAttribute& Att
 {
 	Super::PostAttributeBaseChange(Attribute, OldValue, NewValue);
 
+	// Gameplay Cue for Damage Indicator
 	if (Attribute == GetHealthAttribute())
 	{
-		// Trigger damage indicator cue if health was modified
+		// Trigger cue if health was modified
 		if (NewValue < OldValue)
 		{
 			FGameplayCueParameters Params;

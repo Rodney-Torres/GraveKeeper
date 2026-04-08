@@ -38,6 +38,15 @@ public:
 	FGameplayAttributeData Damage;
 	ATTRIBUTE_ACCESSORS_BASIC(UGKBasicAttributeSet, Damage)
 
+	// Currency Attribute
+	UPROPERTY(BlueprintReadOnly, Category="Attributes")
+	FGameplayAttributeData Souls;
+	ATTRIBUTE_ACCESSORS_BASIC(UGKBasicAttributeSet, Souls)
+
+	UPROPERTY(BlueprintReadOnly, Category="Attributes")
+	FGameplayAttributeData MaxSouls;
+	ATTRIBUTE_ACCESSORS_BASIC(UGKBasicAttributeSet, MaxSouls)
+
 public:
 	// Attribute Change Hooks
 	virtual void PreAttributeBaseChange(const FGameplayAttribute& Attribute, float& NewValue) const override;
