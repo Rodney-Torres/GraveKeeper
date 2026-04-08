@@ -28,4 +28,9 @@ class GK_API UGKGameplayAbility : public UGameplayAbility
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Input")
 	EAbilityInputID AbilityInputID = EAbilityInputID::None;
+
+private:
+	// Check if the avatar actor has a player controller
+	UFUNCTION(BlueprintCallable, Category="Helpers")
+	bool HasPC() const;
 };

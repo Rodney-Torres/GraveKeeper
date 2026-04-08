@@ -100,23 +100,30 @@ void UGKBasicAttributeSet::PostAttributeBaseChange(const FGameplayAttribute& Att
 		// Trigger cue if health was modified
 		if (NewValue < OldValue)
 		{
-			AActor* OwningActor = GetOwningActor();
-			if (APawn* OwnerPawn = Cast<APawn>(OwningActor)) // Only execute cue for the player character
+			if (GetPlayerController()) // Only trigger if we have a valid player controller
 			{
-				if (OwnerPawn->IsPlayerControlled())
-				{
-					FGameplayCueParameters Params;
-					Params.RawMagnitude = OldValue - NewValue;
-					Params.Instigator = OwningActor;
+				FGameplayCueParameters Params;
+				Params.RawMagnitude = OldValue - NewValue;
+				Params.Instigator = GetOwningActor();
 
-					GetOwningAbilitySystemComponent()-> ExecuteGameplayCue(
-						FGameplayTag::RequestGameplayTag(FName("GameplayCue.DamageIndicator")),
-						Params
-					);
-				}
+				GetOwningAbilitySystemComponent()-> ExecuteGameplayCue(
+					FGameplayTag::RequestGameplayTag(FName("GameplayCue.DamageIndicator")),
+					Params
+				);
 			}
 		}
 	}
 
 	// Logic for attribute changes like handling Death Ability
+}
+
+// --- Helper function to get the player controller from the owning actor ---
+APlayerController* UGKBasicAttributeSet::GetPlayerController() const
+{
+	AActor* OwningActor = GetOwningActor();
+	if (APawn* OwnerPawn = Cast<APawn>(OwningActor))
+	{
+		return Cast<APlayerController>(OwnerPawn->GetController());
+	}
+	return nullptr;
 }

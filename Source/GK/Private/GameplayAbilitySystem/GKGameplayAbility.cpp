@@ -8,3 +8,12 @@ UGKGameplayAbility::UGKGameplayAbility()
     ActivationOwnedTags.AddTag(FGameplayTag::RequestGameplayTag(FName("GameplayAbility.Active")));
     ActivationBlockedTags.AddTag(FGameplayTag::RequestGameplayTag(FName("State.Dead")));
 }
+
+// Check if the avatar actor has a player controller
+bool UGKGameplayAbility::HasPC() const
+{
+    const APawn* PawnObject = Cast<APawn>(GetAvatarActorFromActorInfo());
+    if (!PawnObject) return false;
+
+    return PawnObject->GetController()->IsA<APlayerController>();
+}
