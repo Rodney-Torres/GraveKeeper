@@ -100,14 +100,21 @@ void UGKBasicAttributeSet::PostAttributeBaseChange(const FGameplayAttribute& Att
 		// Trigger cue if health was modified
 		if (NewValue < OldValue)
 		{
-			FGameplayCueParameters Params;
-			Params.RawMagnitude = OldValue - NewValue;
-			Params.Instigator = GetOwningActor();
+			AActor* OwningActor = GetOwningActor();
+			if (APawn* OwnerPawn = Cast<APawn>(OwningActor)) // Only execute cue for the player character
+			{
+				if (OwnerPawn->IsPlayerControlled())
+				{
+					FGameplayCueParameters Params;
+					Params.RawMagnitude = OldValue - NewValue;
+					Params.Instigator = OwningActor;
 
-			GetOwningAbilitySystemComponent()-> ExecuteGameplayCue(
-				FGameplayTag::RequestGameplayTag(FName("GameplayCue.DamageIndicator")),
-				Params
-			);
+					GetOwningAbilitySystemComponent()-> ExecuteGameplayCue(
+						FGameplayTag::RequestGameplayTag(FName("GameplayCue.DamageIndicator")),
+						Params
+					);
+				}
+			}
 		}
 	}
 
