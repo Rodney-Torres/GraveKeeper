@@ -8,6 +8,7 @@
 
 class UAIPerceptionComponent;
 class UAISenseConfig_Sight;
+class UAISenseConfig_Hearing;
 /**
  * 
  */
@@ -32,6 +33,9 @@ protected:
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	UAISenseConfig_Sight* AISenseConfig_Sight;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	UAISenseConfig_Hearing* AISenseConfig_Hearing;
 	
 	UFUNCTION()
 	virtual void OnEnemyPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus);

@@ -6,6 +6,7 @@
 #include "Perception/AIPerceptionComponent.h"
 #include "Perception/AISenseConfig_Sight.h"
 #include "BehaviorTree/BlackboardComponent.h"
+#include "Perception/AISenseConfig_Hearing.h"
 
 #include "GKDebugHelper.h"
 
@@ -22,9 +23,19 @@ AGKAIController::AGKAIController(const FObjectInitializer& ObjectInitializer)
 	AISenseConfig_Sight->SightRadius = 5000.f;
 	AISenseConfig_Sight->LoseSightRadius = 0.f; //Once the player is seen we don't want to lose sight of them. We should change this later probably
 	AISenseConfig_Sight->PeripheralVisionAngleDegrees = 360.f; //Full vision, a stealth game would change this
+	AISenseConfig_Sight->SetMaxAge(5.f);
+	
+	AISenseConfig_Hearing = CreateDefaultSubobject<UAISenseConfig_Hearing>("EnemySenseConfig_Hearing");
+	AISenseConfig_Hearing->DetectionByAffiliation.bDetectEnemies = true;
+	AISenseConfig_Hearing->DetectionByAffiliation.bDetectFriendlies = false;
+	AISenseConfig_Hearing->DetectionByAffiliation.bDetectNeutrals = false;
+	AISenseConfig_Hearing->HearingRange = 500.f;
+	AISenseConfig_Hearing->SetMaxAge(5.f);
+	AISenseConfig_Hearing->SetStartsEnabled(true);
 	
 	EnemyPerceptionComponent = CreateDefaultSubobject<UAIPerceptionComponent>("EnemyPerceptionComponent");
 	EnemyPerceptionComponent->ConfigureSense(*AISenseConfig_Sight); //telling our perception component to use the sight config we just created
+	EnemyPerceptionComponent->ConfigureSense(*AISenseConfig_Hearing);
 	EnemyPerceptionComponent->SetDominantSense(UAISenseConfig_Sight::StaticClass()); //Priority when multiple senses are used
 	EnemyPerceptionComponent->OnTargetPerceptionUpdated.AddUniqueDynamic(this, &ThisClass::OnEnemyPerceptionUpdated); //Binding our function to the perception updated delegate
 	
