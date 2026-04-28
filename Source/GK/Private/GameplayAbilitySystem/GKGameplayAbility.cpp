@@ -15,5 +15,6 @@ bool UGKGameplayAbility::HasPC() const
     const APawn* PawnObject = Cast<APawn>(GetAvatarActorFromActorInfo());
     if (!PawnObject) return false;
 
-    return PawnObject->GetController()->IsA<APlayerController>();
+    const AController* Controller = PawnObject->GetController();
+    return Controller && Controller->IsA<APlayerController>();
 }

@@ -52,4 +52,8 @@ public:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AbilitySystem")
 	TArray<TSubclassOf<UGameplayAbility>> StartingAbilities;
+
+	// Helpers
+	UFUNCTION(BlueprintPure, Category="Helpers|GAS")
+	static bool IsDead(UAbilitySystemComponent* InASC);
 };

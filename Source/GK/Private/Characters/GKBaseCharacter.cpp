@@ -103,3 +103,9 @@ void AGKBaseCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 }
+
+bool AGKBaseCharacter::IsDead(UAbilitySystemComponent* InASC)
+{
+	if (!InASC) return false;
+	return InASC->HasMatchingGameplayTag(FGameplayTag::RequestGameplayTag(FName("State.Dead")));
+}

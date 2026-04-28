@@ -94,25 +94,28 @@ void UGKBasicAttributeSet::PostAttributeBaseChange(const FGameplayAttribute& Att
 {
 	Super::PostAttributeBaseChange(Attribute, OldValue, NewValue);
 
+#pragma region DamageIndicator (Disabled)
+	#if 0
 	// Gameplay Cue for Damage Indicator
-	if (Attribute == GetHealthAttribute())
-	{
-		// Trigger cue if health was modified
-		if (NewValue < OldValue)
-		{
-			if (GetPlayerController()) // Only trigger if we have a valid player controller
-			{
-				FGameplayCueParameters Params;
-				Params.RawMagnitude = OldValue - NewValue;
-				Params.Instigator = GetOwningActor();
-
-				GetOwningAbilitySystemComponent()-> ExecuteGameplayCue(
-					FGameplayTag::RequestGameplayTag(FName("GameplayCue.DamageIndicator")),
-					Params
-				);
-			}
-		}
-	}
+	// if (Attribute == GetHealthAttribute())
+	// {
+	// 	// Trigger cue if health was modified
+	// 	if (NewValue < OldValue)
+	// 	{
+	// 		if (GetPlayerController()) // Only trigger if we have a valid player controller
+	// 		{
+	// 			FGameplayCueParameters Params;
+	// 			Params.RawMagnitude = OldValue - NewValue;
+	// 			Params.Instigator = GetOwningActor();
+	// 			GetOwningAbilitySystemComponent()-> ExecuteGameplayCue(
+	// 				FGameplayTag::RequestGameplayTag(FName("GameplayCue.DamageIndicator")),
+	// 				Params
+	// 			);
+	// 		}
+	// 	}
+	// }
+	#endif
+#pragma endregion
 
 	// Logic for attribute changes like handling Death Ability
 }
