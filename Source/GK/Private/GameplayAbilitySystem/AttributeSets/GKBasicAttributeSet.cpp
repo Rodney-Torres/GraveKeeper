@@ -53,6 +53,9 @@ void UGKBasicAttributeSet::PostGameplayEffectExecute(const struct FGameplayEffec
 		// AActor* TargetActor = GetOwningActor();
 
 		// TODO: Activate hit reaction ability if health was modified
+		
+		#pragma region Directional Damage Indicator (Disabled)
+			#if 0
 		// if (Data.EffectSpec.Def->GetAssetTags().HasTag(FGameplayTag::RequestGameplayTag("Effects.HitReaction"))
 		// 	&& Data.EvaluatedData.Magnitude != 0.f)
 		// {
@@ -72,6 +75,8 @@ void UGKBasicAttributeSet::PostGameplayEffectExecute(const struct FGameplayEffec
 
 		// 	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(TargetActor, EventData.EventTag, EventData);
 		// }
+			#endif
+		#pragma endregion
 	}
 
 	// Update attributes after Gameplay Effect execution
