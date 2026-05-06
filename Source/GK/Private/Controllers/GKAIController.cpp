@@ -21,7 +21,7 @@ AGKAIController::AGKAIController(const FObjectInitializer& ObjectInitializer)
 	AISenseConfig_Sight->DetectionByAffiliation.bDetectFriendlies = false;
 	AISenseConfig_Sight->DetectionByAffiliation.bDetectNeutrals = false;
 	AISenseConfig_Sight->SightRadius = 5000.f;
-	AISenseConfig_Sight->LoseSightRadius = 0.f; //Once the player is seen we don't want to lose sight of them. We should change this later probably
+	AISenseConfig_Sight->LoseSightRadius = 500.f; //Once the player is seen we don't want to lose sight of them. We should change this later probably
 	AISenseConfig_Sight->PeripheralVisionAngleDegrees = 360.f; //Full vision, a stealth game would change this
 	AISenseConfig_Sight->SetMaxAge(5.f);
 	
@@ -38,6 +38,7 @@ AGKAIController::AGKAIController(const FObjectInitializer& ObjectInitializer)
 	EnemyPerceptionComponent->ConfigureSense(*AISenseConfig_Hearing);
 	EnemyPerceptionComponent->SetDominantSense(UAISenseConfig_Sight::StaticClass()); //Priority when multiple senses are used
 	EnemyPerceptionComponent->OnTargetPerceptionUpdated.AddUniqueDynamic(this, &ThisClass::OnEnemyPerceptionUpdated); //Binding our function to the perception updated delegate
+	EnemyPerceptionComponent->OnTargetPerceptionForgotten.AddUniqueDynamic(this, &ThisClass::OnEnemyPerceptionForgotten);
 	
 	SetGenericTeamId(FGenericTeamId(1)); //team id our enemy AI will use
 }
@@ -89,4 +90,9 @@ void AGKAIController::OnEnemyPerceptionUpdated(AActor* Actor, FAIStimulus Stimul
 			BlackboardComponent->SetValueAsObject(FName("TargetActor"), Actor); //we set the value of our blackboard key TargetActor to the actor that was sensed
 		}
 	}
+}
+
+void AGKAIController::OnEnemyPerceptionForgotten(AActor* Actor)
+{
+	UE_LOG(LogTemp, Warning, TEXT("FORGOTTEN FIRED: %s"), *GetNameSafe(Actor));
 }

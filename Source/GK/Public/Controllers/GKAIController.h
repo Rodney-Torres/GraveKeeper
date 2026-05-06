@@ -40,6 +40,9 @@ protected:
 	UFUNCTION()
 	virtual void OnEnemyPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus);
 	
+	UFUNCTION()
+	void OnEnemyPerceptionForgotten(AActor* Actor);
+	
 private:
 	UPROPERTY(EditDefaultsOnly, Category = "Detour Crowd Avoidance Config")
 	bool bEnableDetourCrowdAvoidance = true; //With this variable we can toggle our detour crowd avoidance on and off. This is mainly for comparison

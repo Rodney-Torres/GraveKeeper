@@ -8,6 +8,8 @@
 #include "AbilitySystemComponent.h"
 #include "GKBaseCharacter.generated.h"
 
+class UMotionWarpingComponent;
+
 UCLASS()
 class GK_API AGKBaseCharacter : public ACharacter, public IAbilitySystemInterface
 {
@@ -34,6 +36,9 @@ protected:
 	// Called when the character is possessed by a controller
 	virtual void PossessedBy(AController* NewController) override;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "MotionWarping")
+	UMotionWarpingComponent* MotionWarpingComponent;
+	
 public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;

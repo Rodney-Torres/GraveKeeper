@@ -5,6 +5,7 @@
 #include "GameplayAbilitySystem/GKGameplayAbility.h"
 #include "GameplayAbilitySystem/AttributeSets/GKBasicAttributeSet.h"
 #include "GameplayAbilitySystem/AttributeSets/GKCombatAttributeSet.h"
+#include "MotionWarpingComponent.h"
 
 // Sets default values
 AGKBaseCharacter::AGKBaseCharacter()
@@ -16,7 +17,8 @@ AGKBaseCharacter::AGKBaseCharacter()
 	GKAbilitySystemComponent = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("GKAbilitySystemComponent"));
 	GKBasicAttributeSet = CreateDefaultSubobject<UGKBasicAttributeSet>(TEXT("GKBasicAttributeSet"));
 	GKCombatAttributeSet = CreateDefaultSubobject<UGKCombatAttributeSet>(TEXT("GKCombatAttributeSet"));
-
+	
+	MotionWarpingComponent = CreateDefaultSubobject<UMotionWarpingComponent>(TEXT("MotionWarpingComponent"));
 }
 
 UAbilitySystemComponent* AGKBaseCharacter::GetAbilitySystemComponent() const
