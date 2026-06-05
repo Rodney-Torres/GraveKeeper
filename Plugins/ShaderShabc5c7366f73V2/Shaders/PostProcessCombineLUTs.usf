@@ -1,11 +1,11 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
-// Modified by TonemapOverride Plugin
+// Modified by ShaderShift Plugin (5.6 port)
 
 /*=============================================================================
-	LUTBlender.usf: Filter pixel shader source.   
+	LUTBlender.usf: Filter pixel shader source.
 
 	This file shadows Engine/Shaders/Private/PostProcessCombineLUTs.usf.
-	The TonemapOverride plugin injects custom tonemapping operators at the
+	The ShaderShift plugin injects custom tonemapping operators at the
 	LUT baking stage (FilmToneMap call), so color grading works properly.
 
 	Note: Any changes to device encoding logic in CombineLUTsCommon() must
@@ -25,16 +25,21 @@
 //   1 = AgX (Punchy)
 //   2 = Reinhard
 //   3 = Linear (no tonemapping)
-//   4 = Custom (see TonemapCustom.ush)
+//   4 = Khronos PBR Neutral
+//   5 = Custom (see CustomTonemapOperator below)
 
-// TODO: Read this from project settings. For now, set it manually here:
-#ifndef CUSTOM_TONEMAP_MODE
-	#define CUSTOM_TONEMAP_MODE 1  // Change this to switch tonemappers
-#endif
+#define CUSTOM_TONEMAP_MODE 1  // Change this to switch tonemappers
 
 // 0: Default, 1: Golden, 2: Punchy
-
 #define AGX_LOOK 2
+
+// Hue-preserving highlight correction.  When 1, the per-channel tonemap
+// output is replaced (at high luminance) with a luminance-scaled version of
+// the original HDR input — pre-4.17 Unreal behaviour where bright emissive
+// cores keep their colour instead of trending to white through ACES/AgX.
+// Wired to ShaderShift's "Preserve Emissive Color" checkbox.
+
+#define CUSTOM_BLOOM_PRESERVE_COLOR 0
 
 // ──────────────────────────────────────────────────────────────────────────────
 
@@ -130,35 +135,35 @@ float3 ColorCorrectAll( float3 WorkingColor )
 	float Luma = dot( WorkingColor, AP1_RGB2Y );
 
 	// Shadow CC
-	float3 CCColorShadows = ColorCorrect(WorkingColor, 
-		ColorSaturationShadows*ColorSaturation, 
-		ColorContrastShadows*ColorContrast, 
-		ColorGammaShadows*ColorGamma, 
-		ColorGainShadows*ColorGain, 
+	float3 CCColorShadows = ColorCorrect(WorkingColor,
+		ColorSaturationShadows*ColorSaturation,
+		ColorContrastShadows*ColorContrast,
+		ColorGammaShadows*ColorGamma,
+		ColorGainShadows*ColorGain,
 		ColorOffsetShadows+ColorOffset);
 	float CCWeightShadows = 1- smoothstep(0, ColorCorrectionShadowsMax, Luma);
-	
+
 	// Highlight CC
-	float3 CCColorHighlights = ColorCorrect(WorkingColor, 
-		ColorSaturationHighlights*ColorSaturation, 
-		ColorContrastHighlights*ColorContrast, 
-		ColorGammaHighlights*ColorGamma, 
-		ColorGainHighlights*ColorGain, 
+	float3 CCColorHighlights = ColorCorrect(WorkingColor,
+		ColorSaturationHighlights*ColorSaturation,
+		ColorContrastHighlights*ColorContrast,
+		ColorGammaHighlights*ColorGamma,
+		ColorGainHighlights*ColorGain,
 		ColorOffsetHighlights+ColorOffset);
 	float CCWeightHighlights = smoothstep(ColorCorrectionHighlightsMin, ColorCorrectionHighlightsMax, Luma);
 
 	// Midtone CC
-	float3 CCColorMidtones = ColorCorrect(WorkingColor, 
-		ColorSaturationMidtones*ColorSaturation, 
-		ColorContrastMidtones*ColorContrast, 
-		ColorGammaMidtones*ColorGamma, 
-		ColorGainMidtones*ColorGain, 
+	float3 CCColorMidtones = ColorCorrect(WorkingColor,
+		ColorSaturationMidtones*ColorSaturation,
+		ColorContrastMidtones*ColorContrast,
+		ColorGammaMidtones*ColorGamma,
+		ColorGainMidtones*ColorGain,
 		ColorOffsetMidtones+ColorOffset);
 	float CCWeightMidtones = 1 - CCWeightShadows - CCWeightHighlights;
 
 	// Blend Shadow, Midtone and Highlight CCs
 	float3 WorkingColorSMH = CCColorShadows*CCWeightShadows + CCColorMidtones*CCWeightMidtones + CCColorHighlights*CCWeightHighlights;
-	
+
 	return WorkingColorSMH;
 }
 
@@ -189,7 +194,7 @@ float3 AgxDefaultContrastApprox(float3 x)
 {
 	const float3 x2 = x * x;
 	const float3 x4 = x2 * x2;
-	
+
 	return + 15.5     * x4 * x2
 	       - 40.14    * x4 * x
 	       + 31.96    * x4
@@ -220,14 +225,14 @@ float3 Agx(float3 val)
 	// Input transform (inset)
 	// Note: throughout UE shaders we use mul(Matrix, Vector)
 	val = mul(val, agx_mat); //val = mul(agx_mat, val);
-	
+
 	// Log2 space encoding
 	val = clamp(log2(max(val, AgxEps.xxx)), min_ev, max_ev);
 	val = (val - min_ev) / (max_ev - min_ev);
-  
+
 	// Apply sigmoid function approximation
 	val = AgxDefaultContrastApprox(val);
-	
+
 	return val;
 }
 
@@ -237,11 +242,11 @@ float3 AgxEotf(float3 val)
 		 1.19687900512017,  -0.0528968517574562, -0.0529716355144438,
 		-0.0980208811401368, 1.15190312990417,   -0.0980434501171241,
 		-0.0990297440797205,-0.0989611768448433,  1.15107367264116);
-	
+
 	// Inverse input transform (outset)
 	// val = mul(val, agx_mat_inv); // Original
 	val = mul(val, agx_mat_inv); //val = mul(agx_mat_inv, val);
-	
+
 
 	// Clamp to non-negative before pow(): the outset matrix can produce
 	// small negative values for saturated colors, and pow(negative, 2.2)
@@ -255,21 +260,21 @@ float3 AgxEotf(float3 val)
 	// NOTE: We're linearizing the output here. Comment/adjust when
 	// *not* using a sRGB render target
 	val = pow(val, 2.2);
-	
+
 	return val;
 }
 
 float3 AgxLook(float3 val)
 {
 	const float3 lw = float3(0.2126, 0.7152, 0.0722);
-	const float luma = dot(val, lw);
-  
+
+
 	// Default
 	const float3 offset = float3(0.0, 0.0, 0.0);
 	float3 slope = float3(1.0, 1.0, 1.0);
 	float3 power = float3(1.0, 1.0, 1.0);
 	float sat = 1.0;
- 
+
 #if AGX_LOOK == 1
 	// Golden
 	slope = float3(1.0, 0.9, 0.5);
@@ -281,9 +286,10 @@ float3 AgxLook(float3 val)
 	power = float3(1.35, 1.35, 1.35);
 	sat = 1.4;
 #endif
-  
+
 	// ASC CDL
 	val = pow(max(val * slope + offset, 0.0), power);
+	const float luma = dot(val, lw);
 	return luma + sat * (val - luma);
 }
 
@@ -310,10 +316,10 @@ float3 ReinhardTonemapAP1(float3 ColorAP1)
 	// Convert to sRGB for tonemapping
 	const float3x3 AP1_2_sRGB = mul( XYZ_2_sRGB_MAT, mul( D60_2_D65_CAT, AP1_2_XYZ_MAT ) );
 	float3 LinearSRGB = mul(AP1_2_sRGB, ColorAP1);
-	
+
 	// Reinhard
 	LinearSRGB = LinearSRGB / (1.0f + LinearSRGB);
-	
+
 	// Convert back to AP1
 	const float3x3 sRGB_2_AP1 = mul( XYZ_2_AP1_MAT, mul( D65_2_D60_CAT, sRGB_2_XYZ_MAT ) );
 	return mul(sRGB_2_AP1, LinearSRGB);
@@ -325,12 +331,12 @@ float3 ACESFilmicAP1(float3 ColorAP1)
 	// Convert to sRGB for tonemapping
 	const float3x3 AP1_2_sRGB = mul( XYZ_2_sRGB_MAT, mul( D60_2_D65_CAT, AP1_2_XYZ_MAT ) );
 	float3 LinearSRGB = mul(AP1_2_sRGB, ColorAP1);
-	
+
 	// ACES approximation
 	const float a = 2.51f; const float b = 0.03f;
 	const float c = 2.43f; const float d = 0.59f; const float e = 0.14f;
 	LinearSRGB = saturate((LinearSRGB * (a * LinearSRGB + b)) / (LinearSRGB * (c * LinearSRGB + d) + e));
-	
+
 	// Convert back to AP1
 	const float3x3 sRGB_2_AP1 = mul( XYZ_2_AP1_MAT, mul( D65_2_D60_CAT, sRGB_2_XYZ_MAT ) );
 	return mul(sRGB_2_AP1, LinearSRGB);
@@ -367,6 +373,38 @@ float3 CustomTonemapOperator(float3 LinearColor)
 	return saturate(Mapped * WhiteScale);
 }
 
+// Khronos PBR Neutral tonemapper
+// Reference: https://github.com/KhronosGroup/ToneMapping/tree/main/PBR_Neutral
+// Input/output: Linear Rec. 709 (sRGB primaries), output in [0, 1]
+float3 PBRNeutralToneMapping(float3 Color)
+{
+	const float StartCompression = 0.8 - 0.04;
+	const float Desaturation = 0.15;
+
+	float x = min(Color.r, min(Color.g, Color.b));
+	float Offset = x < 0.08 ? x - 6.25 * x * x : 0.04;
+	Color -= Offset;
+
+	float Peak = max(Color.r, max(Color.g, Color.b));
+	if (Peak < StartCompression) return Color;
+
+	const float d = 1.0 - StartCompression;
+	float NewPeak = 1.0 - d * d / (Peak + d - StartCompression);
+	Color *= NewPeak / Peak;
+
+	float g = 1.0 - 1.0 / (Desaturation * (Peak - NewPeak) + 1.0);
+	return lerp(Color, NewPeak * float3(1, 1, 1), g);
+}
+
+float3 ApplyKPBRN(float3 ColorAP1)
+{
+	const float3x3 AP1_2_sRGB = mul( XYZ_2_sRGB_MAT, mul( D60_2_D65_CAT, AP1_2_XYZ_MAT ) );
+	const float3x3 sRGB_2_AP1 = mul( XYZ_2_AP1_MAT, mul( D65_2_D60_CAT, sRGB_2_XYZ_MAT ) );
+	float3 LinearSRGB = mul(AP1_2_sRGB, ColorAP1);
+	LinearSRGB = PBRNeutralToneMapping(LinearSRGB);
+	return mul(sRGB_2_AP1, LinearSRGB);
+}
+
 // Custom tonemap dispatcher - replaces FilmToneMap()
 float3 CustomFilmToneMap(float3 ColorAP1)
 {
@@ -380,8 +418,10 @@ float3 CustomFilmToneMap(float3 ColorAP1)
 		// Linear (no tonemapping)
 		return saturate(ColorAP1);
 	#elif CUSTOM_TONEMAP_MODE == 4
-		// Custom (user-defined in TonemapCustom.ush)
-		// Convert to sRGB for custom operator
+		// Khronos PBR Neutral
+		return ApplyKPBRN(ColorAP1);
+	#elif CUSTOM_TONEMAP_MODE == 5
+		// Custom (user-defined below in CustomTonemapOperator)
 		const float3x3 AP1_2_sRGB = mul( XYZ_2_sRGB_MAT, mul( D60_2_D65_CAT, AP1_2_XYZ_MAT ) );
 		float3 LinearSRGB = mul(AP1_2_sRGB, ColorAP1);
 		LinearSRGB = CustomTonemapOperator(LinearSRGB);
@@ -399,7 +439,7 @@ float3 CustomFilmToneMap(float3 ColorAP1)
 float4 CombineLUTsCommon(float2 InUV, uint InLayerIndex)
 {
 #if USE_VOLUME_LUT == 1
-	// construct the neutral color from a 3d position volume texture	
+	// construct the neutral color from a 3d position volume texture
 	float4 Neutral;
 	{
 		float2 UV = InUV - float2(0.5f / LUTSize, 0.5f / LUTSize);
@@ -409,7 +449,7 @@ float4 CombineLUTsCommon(float2 InUV, uint InLayerIndex)
 #else
 	// construct the neutral color from a 2d position in 256x16
 	float4 Neutral;
-	{ 
+	{
 		float2 UV = InUV;
 
 		// 0.49999f instead of 0.5f to avoid getting into negative values
@@ -418,7 +458,7 @@ float4 CombineLUTsCommon(float2 InUV, uint InLayerIndex)
 		float Scale = LUTSize / (LUTSize - 1);
 
 		float3 RGB;
-		
+
 		RGB.r = frac(UV.x * LUTSize);
 		RGB.b = UV.x - RGB.r / LUTSize;
 		RGB.g = UV.y;
@@ -428,7 +468,7 @@ float4 CombineLUTsCommon(float2 InUV, uint InLayerIndex)
 #endif
 
 	float4 OutColor = 0;
-	
+
 	const float3x3 AP1_2_sRGB = mul( XYZ_2_sRGB_MAT, mul( D60_2_D65_CAT, AP1_2_XYZ_MAT ) );
 	const float3x3 AP0_2_AP1 = mul( XYZ_2_AP1_MAT, AP0_2_XYZ_MAT );
 	const float3x3 AP1_2_AP0 = mul( XYZ_2_AP0_MAT, AP1_2_XYZ_MAT );
@@ -453,7 +493,7 @@ float4 CombineLUTsCommon(float2 InUV, uint InLayerIndex)
 	}
 
 	float3 BalancedColor = LinearColor;
-	
+
 	BRANCH
 	if( abs(WhiteTemp - DefaultTemperature) > Epsilon || abs(WhiteTint - DefaultTint) > Epsilon )
 	{
@@ -462,7 +502,9 @@ float4 CombineLUTsCommon(float2 InUV, uint InLayerIndex)
 
 	float3 ColorAP1 = mul( (float3x3)WorkingColorSpace.ToAP1, BalancedColor );
 
+#if CUSTOM_TONEMAP_MODE == 0
 	// Expand bright saturated colors outside the sRGB gamut to fake wide gamut rendering.
+	// ACES-specific: bypassed for all other tonemappers.
  	float  LumaAP1 = dot( ColorAP1, AP1_RGB2Y );
 	float3 ChromaAP1 = ColorAP1 / LumaAP1;
 
@@ -475,7 +517,7 @@ float4 CombineLUTsCommon(float2 InUV, uint InLayerIndex)
 	//				Green:		0.245	0.718
 	//				Blue:		0.1302	0.0456
 	//				White:		0.3127	0.329
-	const float3x3 Wide_2_XYZ_MAT = 
+	const float3x3 Wide_2_XYZ_MAT =
 	{
 		0.5441691,  0.2395926,  0.1666943,
 		0.2394656,  0.7021530,  0.0583814,
@@ -487,12 +529,17 @@ float4 CombineLUTsCommon(float2 InUV, uint InLayerIndex)
 
 	float3 ColorExpand = mul( ExpandMat, ColorAP1 );
 	ColorAP1 = lerp( ColorAP1, ColorExpand, ExpandAmount );
+#endif // CUSTOM_TONEMAP_MODE == 0
 
 	ColorAP1 = ColorCorrectAll( ColorAP1 );
 
 	// Store for Linear HDR output without tone curve
 	float3 GradedColor = mul( (float3x3)WorkingColorSpace.FromAP1, ColorAP1 );
 
+#if CUSTOM_TONEMAP_MODE == 0
+	// Blue correction for ACES: corrects ACES's tendency to desaturate blues.
+	// Bypassed for all other tonemappers — the forward+inverse pair doesn't cancel
+	// cleanly through a nonlinear tonemapper, leaving a residual color shift.
 	const float3x3 BlueCorrect =
 	{
 		0.9404372683, -0.0183068787, 0.0778696104,
@@ -510,23 +557,126 @@ float4 CombineLUTsCommon(float2 InUV, uint InLayerIndex)
 
 	// Blue correction
 	ColorAP1 = lerp( ColorAP1, mul( BlueCorrectAP1, ColorAP1 ), BlueCorrection );
+#endif // CUSTOM_TONEMAP_MODE == 0
+
+	// ── PLUGIN OVERRIDE: stash pre-tonemap colour in working space ──────────
+	// Used by the post-FilmColor hue-preservation pass below.  Moving the
+	// correction past the engine's own AP1→working conversion eliminates
+	// the AP1 round-trip that earlier versions of this code went through
+	// (working → AP1 → tonemap → my correction in AP1 → AP1 → working);
+	// any small precision drift in the ToAP1 / FromAP1 matrix pair compounded
+	// across two trips and showed up as a hue shift on saturated highlights.
+#if CUSTOM_BLOOM_PRESERVE_COLOR
+	float3 ShaderShift_OriginalWorkingColor =
+		mul((float3x3)WorkingColorSpace.FromAP1, ColorAP1);
+#endif
 
 	// ── PLUGIN OVERRIDE: Custom tonemapping replaces FilmToneMap ────────────
 	// Tonemapped color in the AP1 gamut
 	float3 ToneMappedColorAP1 = CustomFilmToneMap( ColorAP1 );
+
 	ColorAP1 = lerp(ColorAP1, ToneMappedColorAP1, ToneCurveAmount);
 
+#if CUSTOM_TONEMAP_MODE == 0
 	// Uncorrect blue to maintain white point
 	ColorAP1 = lerp( ColorAP1, mul( BlueCorrectInvAP1, ColorAP1 ), BlueCorrection );
+#endif // CUSTOM_TONEMAP_MODE == 0
 
 	// Convert from AP1 to the working color space and clip out-of-gamut values
 	float3 FilmColor = max(0, mul( (float3x3)WorkingColorSpace.FromAP1, ColorAP1 ));
+
+	// ── PLUGIN OVERRIDE: hue-preserving highlight correction ────────────────
+	//
+	// Per-channel tonemappers (ACES, AgX, …) compress each channel
+	// independently, which desaturates bright HDR pixels — an emissive at
+	// e.g. (0, 200, 0) tonemaps to a near-white FilmColor instead of the
+	// pure green the user expects.  Pre-4.17 Unreal used a luminance-based
+	// curve that compressed brightness uniformly while preserving chroma;
+	// we approximate that look by replacing FilmColor (at high luminance)
+	// with the original HDR colour scaled down to the engine's tonemapped
+	// luminance, then soft-clamped so the dominant channel hits 1.0.
+	//
+	// Applied here, in working space, AFTER the engine's own AP1→working
+	// conversion — earlier versions did the math in AP1 and round-tripped
+	// back, which compounded matrix precision errors and produced a
+	// yellow-shifted core on saturated highlights.  At this point both
+	// FilmColor and ShaderShift_OriginalWorkingColor are in the same
+	// (working-space) coordinate system, so the math is exact and the
+	// preserved hue lands clean.
+	//
+	// Down ramp: hands back to the engine default at extreme HDR
+	// (OrigLum ≳ 540) so the very brightest pixels trend cleanly to
+	// white instead of staying saturated.  No up-ramp — earlier versions
+	// gated the fade-in on TmLum, but per-channel ACES/AgX saturates
+	// TmLum to ~1.0 so quickly that the entire transition collapsed into
+	// a few-pixel-wide window and read as a hard edge.  Always-on with
+	// just the high-HDR fallback gives a smooth gradient.
+#if CUSTOM_BLOOM_PRESERVE_COLOR
+	{
+		const float3 LumWeights = float3(0.2126, 0.7152, 0.0722);
+		float OrigLum = max(dot(ShaderShift_OriginalWorkingColor, LumWeights), 1e-4);
+		float TmLum   = max(dot(FilmColor, LumWeights), 1e-4);
+
+		// Uniform luminance scale — preserves hue exactly.
+		float3 HueScaled = ShaderShift_OriginalWorkingColor * (TmLum / OrigLum);
+
+		// Saturation amplification — push off-channels toward zero so
+		// slight cross-channel content (indirect lighting, bloom, AgX
+		// channel coupling, LUT cell interpolation) doesn't bleed into
+		// the result.  Lerping from luminance with factor > 1 pushes
+		// off-channels into negatives; max(0,..) clamps them.  Neutral
+		// inputs (greys) pass through unchanged because the deltas from
+		// luminance are zero.
+		const float SatBoost = 2.0;
+		float HueLum = dot(HueScaled, LumWeights);
+		HueScaled = max(0.0, lerp(HueLum.xxx, HueScaled, SatBoost));
+
+		// Soft-clamp the dominant channel back to ≤ 1.0.
+		float MaxChan = max(HueScaled.r, max(HueScaled.g, HueScaled.b));
+		HueScaled /= max(MaxChan, 1.0);
+
+		// Up ramp: gate the correction by brightness so it only affects
+		// pixels that are actually emissive-bright.  Without this gate,
+		// every chromatic LUT cell (lemons, bread, fabric, anything with
+		// any warm or cool cast at all) gets the saturation boost
+		// applied, which pushes the entire scene into oversaturated
+		// territory.  Gating on OrigLum lets us excise normal-scene
+		// content from the correction while still hitting bright
+		// emissive cores at full strength.
+		//
+		// OrigLum (rather than TmLum) is the right signal here because
+		// TmLum saturates to ~1 the moment a pixel gets even modestly
+		// bright — its transition zone collapses to a few pixels in
+		// screen space and reads as a hard ring.  OrigLum varies
+		// linearly with HDR input across the LUT range, so a
+		// smoothstep on it gives a wide, gradual transition both in
+		// LUT cell space and (consequently) in screen space.
+		//
+		// (5, 11) thresholds: cells with OrigLum below ~5 (≈ scene
+		// HDR < 7) get no correction; cells at OrigLum ≳ 11 (the
+		// SDR LUT corner) get full correction; smooth gradient in
+		// between.  Tune the start threshold up to exclude more of
+		// the scene from the effect, down to include sun-lit highlights.
+		float Up = smoothstep(5.0, 11.0, OrigLum);
+
+		// Down ramp kept for HDR-output safety — won't trigger in SDR
+		// because LUT cells max at OrigLum ≈ 11.  In HDR LUT modes
+		// where cells extend past 150, this fades the correction back
+		// to engine default for the white-core fallback.
+		float Down = smoothstep(150.0, 540.0, OrigLum);
+
+		float HighlightBlend = Up * (1.0 - Down);
+
+		FilmColor = lerp(FilmColor, HueScaled, HighlightBlend);
+	}
+#endif
+	// ────────────────────────────────────────────────────────────────────────
 
 #if BLENDCOUNT > 1
 	{
 		// Legacy LDR LUT color grading
 
-		// FIXME 
+		// FIXME
 		// LUTs are in sRGB transfer function space
 		// LUTs applied in sRGB gamut as well
 		half3 GammaColor = LinearToSrgb( saturate( FilmColor ) );
@@ -556,7 +706,7 @@ float4 CombineLUTsCommon(float2 InUV, uint InLayerIndex)
 		FilmColor =  sRGBToLinear( GammaColor );
 	}
 #endif
-	
+
 	// apply math color correction on top to texture based solution
 	FilmColor = ColorCorrection( FilmColor );
 
@@ -568,16 +718,16 @@ float4 CombineLUTsCommon(float2 InUV, uint InLayerIndex)
 
 	// Apply "gamma" curve adjustment.
 	FilmColor = pow( max(0, FilmColorNoGamma), InverseGamma.y );
-		
-	// Note: Any changes to the following device encoding logic must also be made 
+
+	// Note: Any changes to the following device encoding logic must also be made
 	// in PostProcessDeviceEncodingOnly.usf's corresponding pixel shader.
 	half3 OutDeviceColor = 0;
 	BRANCH
 
 	// sRGB, user specified gamut
 	if( GetOutputDevice() == TONEMAPPER_OUTPUT_sRGB)
-	{		
-		// Convert from sRGB to specified output gamut	
+	{
+		// Convert from sRGB to specified output gamut
 		//float3 OutputGamutColor = mul( AP1_2_Output, mul( sRGB_2_AP1, FilmColor ) );
 
 		// FIXME: Workaround for UE-29935, pushing all colors with a 0 component to black output
@@ -598,7 +748,7 @@ float4 CombineLUTsCommon(float2 InUV, uint InLayerIndex)
 		OutDeviceColor = LinearTo709Branchless( OutputGamutColor );
 	}
 
-	// ACES transform with PQ/2084 encoding, user specified gamut 
+	// ACES transform with PQ/2084 encoding, user specified gamut
 	else if( GetOutputDevice() == TONEMAPPER_OUTPUT_ACES1000nitST2084 || GetOutputDevice() == TONEMAPPER_OUTPUT_ACES2000nitST2084)
 	{
 #if USE_ACES_2
@@ -623,8 +773,8 @@ float4 CombineLUTsCommon(float2 InUV, uint InLayerIndex)
 		float3 ODTColor = ACESOutputTransform( GradedColor, (float3x3)WorkingColorSpace.ToAP0, AcesParams);
 #endif
 		OutDeviceColor = mul(AP1_2_sRGB, ODTColor / UE_SCRGB_WHITE_NITS);
-	}	
-	
+	}
+
 	else if( GetOutputDevice() == TONEMAPPER_OUTPUT_LinearEXR)
 	{
 			float3 OutputGamutColor = mul( AP1_2_Output, mul( (float3x3)WorkingColorSpace.ToAP1, GradedColor ) );
@@ -688,11 +838,11 @@ float2 OutputExtentInverse;
 RWTexture3D<float4> RWOutputTexture;
 
 [numthreads(THREADGROUP_SIZE, THREADGROUP_SIZE, THREADGROUP_SIZE)]
-void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID) 
+void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 {
 	float2 UV = ((float2)DispatchThreadId.xy + 0.5f) * OutputExtentInverse;
 	uint LayerIndex = DispatchThreadId.z;
-	
+
 	float4 OutColor = CombineLUTsCommon(UV, LayerIndex);
 
 	uint3 PixelPos = DispatchThreadId;
@@ -706,7 +856,7 @@ void MainCS(uint2 DispatchThreadId : SV_DispatchThreadID)
 {
 	float2 UV = ((float2)DispatchThreadId + 0.5f) * OutputExtentInverse;
 	uint LayerIndex = 0;
-	
+
 	float4 OutColor = CombineLUTsCommon(UV, LayerIndex);
 
 	uint2 PixelPos = DispatchThreadId;

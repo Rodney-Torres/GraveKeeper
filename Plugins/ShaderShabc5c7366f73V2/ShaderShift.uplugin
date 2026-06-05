@@ -1,0 +1,38 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "1.0.4",
+	"FriendlyName": "ShaderShift",
+	"Description": "Overrides engine shaders, allowing for user customization.",
+	"Category": "Rendering",
+	"CreatedBy": "Hyperdyne Systems LLC",
+	"CreatedByURL": "https://patreon.com/HiddenEmpireGame",
+	"DocsURL": "https://www.notion.so/ShaderShift-Engine-Shader-Overrides-Documentation-3259d077db3e807b8c11fc814b4486ae",
+	"MarketplaceURL": "",
+	"SupportURL": "https://discord.gg/3W9HbDvp",
+	"EngineVersion": "5.6.0",
+	"CanContainContent": true,
+	"Installed": true,
+	"Modules": [
+		{
+			"Name": "ShaderShift",
+			"Type": "Runtime",
+			"LoadingPhase": "PostConfigInit",
+			"PlatformAllowList": [
+				"Win64",
+				"Linux",
+				"Mac"
+			]
+		},
+		{
+			"Name": "ShaderShiftEditor",
+			"Type": "Editor",
+			"LoadingPhase": "PostEngineInit",
+			"PlatformAllowList": [
+				"Win64",
+				"Linux",
+				"Mac"
+			]
+		}
+	]
+}

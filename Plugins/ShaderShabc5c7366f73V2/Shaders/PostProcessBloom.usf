@@ -1,0 +1,454 @@
+// Copyright Epic Games, Inc. All Rights Reserved.
+// Modified by ShaderShift — pluggable bloom kernels via CUSTOM_BLOOM_MODE.
+
+/*=============================================================================
+	PostProcessBloom.usf: PostProcessing bloom
+
+	5.6-compatible version with custom bloom modes from ShaderShift.
+	The setup-stage colour is routed through BloomShift_Setup so the chosen
+	bloom kernel (Kawase, COD Scatter, Anamorphic, Anime, CRT) shapes the
+	mip-0 buffer before the engine downsample chain runs.
+
+	The mode-implementation helpers are inlined immediately below so this
+	file has no external plugin dependencies — it only needs the standard
+	engine includes that the original PostProcessBloom.usf already pulls in.
+=============================================================================*/
+
+#define EYE_ADAPTATION_LOOSE_PARAMETERS 1
+
+#include "Common.ush"
+#include "PostProcessCommon.ush"
+#include "EyeAdaptationCommon.ush"
+#include "PostProcessHistogramCommon.ush"
+#include "ScreenPass.ush"
+
+// Pulled up from below so the BloomShift_* helpers can reference
+// Input_UVViewportBilinearMin/Max for sample clamping.
+SCREEN_PASS_TEXTURE_VIEWPORT(Input)
+
+
+//=============================================================================
+// ShaderShift bloom-mode dispatcher
+//
+// Values:
+//   0 = Engine default (no override)
+//   1 = Dual Kawase Blur                [Bjørge SIGGRAPH 2015]
+//   2 = COD Scatter-as-Gather           [Jimenez SIGGRAPH 2014, Karis filter]
+//   3 = FFT Diffraction Starburst       (kernel replaced in BloomResizeKernel.usf
+//                                        — pass-through here)
+//   4 = Anamorphic Lens Streak
+//   5 = Spencer Ocular PSF              (kernel replaced in BloomResizeKernel.usf
+//                                        — pass-through here)
+//   6 = Anime / Toon Hard Glow
+//   7 = Retro / CRT-style Glow
+//=============================================================================
+
+#define CUSTOM_BLOOM_MODE 0
+
+
+// Per-mode tunables — surface as ShaderShift settings in a future revision.
+
+// Mode 1 — Dual Kawase
+//
+// Offsets are in pixels — applied directly to PixelSize, no half-pixel
+// fudge.  Real Dual Kawase widens through pyramid descent; we collapse
+// that into a single setup-stage pass so we need a chunky offset (~4–8 px)
+// for the look to survive the engine's near-Gaussian downsample chain.
+#define CUSTOM_BLOOM_KAWASE_OFFSET           4.0
+
+// Mode 2 — COD Scatter-as-Gather
+#define CUSTOM_BLOOM_COD_KARIS_AVG           1      // 1 = anti-flicker partial-Karis averaging
+
+// Mode 4 — Anamorphic Lens Streak
+#define CUSTOM_BLOOM_ANAMORPHIC_ANGLE        0.0    // radians; 0 = horizontal
+#define CUSTOM_BLOOM_ANAMORPHIC_LENGTH       16.0   // taps in each direction
+#define CUSTOM_BLOOM_ANAMORPHIC_TINT_R       0.55
+#define CUSTOM_BLOOM_ANAMORPHIC_TINT_G       0.85
+#define CUSTOM_BLOOM_ANAMORPHIC_TINT_B       1.20
+
+// Mode 6 — Anime / Toon Hard Glow
+#define CUSTOM_BLOOM_ANIME_THRESHOLD         0.85
+#define CUSTOM_BLOOM_ANIME_DILATION_RADIUS   2      // texels (max-filter radius)
+
+// Mode 7 — Retro / CRT-style Glow
+#define CUSTOM_BLOOM_CRT_PHOSPHOR_OFFSET     1.5    // texels of RGB chromatic split
+#define CUSTOM_BLOOM_CRT_HORIZ_TAPS          5      // half-window of scanline smear
+#define CUSTOM_BLOOM_CRT_SCANLINE_FREQ       220.0  // virtual scanline density
+#define CUSTOM_BLOOM_CRT_SCANLINE_DEPTH      0.35   // dark/bright scanline modulation
+
+// Modes 3 (FFT Diffraction Starburst) and 5 (Spencer Ocular PSF) are
+// handled entirely inside Bloom/BloomResizeKernel.usf — they replace the
+// convolution-bloom kernel and therefore require Convolution Bloom to be
+// active in the post-process volume.  At setup-stage they fall through to
+// the engine default.
+
+
+//-----------------------------------------------------------------------------
+// Helpers
+//-----------------------------------------------------------------------------
+
+// Clamped, pre-exposure-corrected scene-color tap.
+//
+// Two things every multi-tap kernel below needs:
+//   1. UV clamp to Input_UVViewportBilinearMin/Max — without this, taps near
+//      the screen edge stray into invalid scene-color regions (other render
+//      targets in the same atlas, stale frame data) and produce the rainbow
+//      striping artefact that cost a few hours of debugging to track down.
+//   2. Multiply by View.OneOverPreExposure to undo the engine's PreExposure
+//      scaling, matching what the single-tap mode-0 path does at the very
+//      first line of BloomSetupCommon().  Without this modes 1/2/4/6/7 are
+//      brighter than mode 0 by exactly PreExposure.
+float4 BloomShift_TexSample(Texture2D Tex, SamplerState Smp, float2 UV)
+{
+	// Compute bilinear-safe viewport bounds manually from Input_ViewportMin /
+	// Input_ViewportSize / Input_ExtentInverse — these are always populated by
+	// the engine's ScreenPass infrastructure.  Input_UVViewportBilinearMin /
+	// Max exist in the struct but the C++ side does not always populate them
+	// for the BloomSetup pass (especially in 5.4) — using the macros directly
+	// gave (0,0) bounds in that case, which collapsed every kernel tap to the
+	// top-left pixel and produced the heavy single-colour tint artefact.
+	const float2 BilinearMin = (Input_ViewportMin + 0.5) * Input_ExtentInverse;
+	const float2 BilinearMax = (Input_ViewportMin + Input_ViewportSize - 0.5) * Input_ExtentInverse;
+	UV = clamp(UV, BilinearMin, BilinearMax);
+	return Texture2DSample(Tex, Smp, UV) * View.OneOverPreExposure;
+}
+
+// Karis anti-flicker partial average.
+//
+// Weight each sample by 1/(1 + luma) and normalise by the sum of weights so
+// that uniformly bright groups pass through unchanged while isolated
+// fireflies get suppressed.  An earlier version weighted the *average*
+// rather than the individual samples and forgot to normalise — the
+// resulting clip-to-1.0 behaviour killed bloom on every emissive surface
+// once it crossed the threshold pass.
+float3 BloomShift_KarisAverage(float3 c0, float3 c1, float3 c2, float3 c3)
+{
+	float w0 = 1.0 / (1.0 + Luminance(c0));
+	float w1 = 1.0 / (1.0 + Luminance(c1));
+	float w2 = 1.0 / (1.0 + Luminance(c2));
+	float w3 = 1.0 / (1.0 + Luminance(c3));
+	float wTotal = w0 + w1 + w2 + w3;
+	return (c0 * w0 + c1 * w1 + c2 * w2 + c3 * w3) / wTotal;
+}
+
+//-----------------------------------------------------------------------------
+// Mode 1 — Dual Kawase (single-pass approximation)
+//
+// Real Kawase needs ping-pong down+up, but mip-0 pre-blur is enough to colour
+// the look since UE's downsample chain is itself near-Gaussian.  We blend the
+// down-step (5 taps) and up-step (8 taps) at half weight to approximate one
+// full ping-pong cycle in a single shader invocation.
+//-----------------------------------------------------------------------------
+
+float3 BloomShift_DualKawase_Downsample(Texture2D Tex, SamplerState Smp,
+                                        float2 UV, float2 HalfPixel)
+{
+	float2 o = HalfPixel * CUSTOM_BLOOM_KAWASE_OFFSET;
+
+	float3 sum  = BloomShift_TexSample(Tex, Smp, UV).rgb * 4.0;
+	sum += BloomShift_TexSample(Tex, Smp, UV + float2( o.x,  o.y)).rgb;
+	sum += BloomShift_TexSample(Tex, Smp, UV + float2(-o.x,  o.y)).rgb;
+	sum += BloomShift_TexSample(Tex, Smp, UV + float2( o.x, -o.y)).rgb;
+	sum += BloomShift_TexSample(Tex, Smp, UV + float2(-o.x, -o.y)).rgb;
+	return sum * (1.0 / 8.0);
+}
+
+float3 BloomShift_DualKawase_Upsample(Texture2D Tex, SamplerState Smp,
+                                      float2 UV, float2 HalfPixel)
+{
+	float2 o = HalfPixel * CUSTOM_BLOOM_KAWASE_OFFSET;
+
+	float3 sum  = float3(0,0,0);
+	sum += BloomShift_TexSample(Tex, Smp, UV + float2(-o.x * 2.0, 0.0)).rgb;
+	sum += BloomShift_TexSample(Tex, Smp, UV + float2(-o.x,  o.y)).rgb * 2.0;
+	sum += BloomShift_TexSample(Tex, Smp, UV + float2(0.0, o.y * 2.0)).rgb;
+	sum += BloomShift_TexSample(Tex, Smp, UV + float2( o.x,  o.y)).rgb * 2.0;
+	sum += BloomShift_TexSample(Tex, Smp, UV + float2( o.x * 2.0, 0.0)).rgb;
+	sum += BloomShift_TexSample(Tex, Smp, UV + float2( o.x, -o.y)).rgb * 2.0;
+	sum += BloomShift_TexSample(Tex, Smp, UV + float2(0.0, -o.y * 2.0)).rgb;
+	sum += BloomShift_TexSample(Tex, Smp, UV + float2(-o.x, -o.y)).rgb * 2.0;
+	return sum * (1.0 / 12.0);
+}
+
+//-----------------------------------------------------------------------------
+// Mode 2 — COD Scatter-as-Gather (Karis 13-tap)
+//
+// Jimenez, "Next Generation Post Processing in Call of Duty: Advanced Warfare"
+// (SIGGRAPH 2014).  The same scatter-as-gather kernel UE already uses in its
+// modern bloom path — exposed here as an explicit mode so it can be A/B'd
+// against Kawase or compared to FFT bloom on identical scenes.
+//-----------------------------------------------------------------------------
+
+float3 BloomShift_COD_Downsample(Texture2D Tex, SamplerState Smp,
+                                 float2 UV, float2 PixelSize, bool bAntiFlicker)
+{
+	float2 px = PixelSize;
+
+	// 4 inner taps (the "inner ring", offset by ±1 px)
+	float3 a = BloomShift_TexSample(Tex, Smp, UV + float2(-px.x, -px.y)).rgb;
+	float3 b = BloomShift_TexSample(Tex, Smp, UV + float2( px.x, -px.y)).rgb;
+	float3 c = BloomShift_TexSample(Tex, Smp, UV + float2(-px.x,  px.y)).rgb;
+	float3 d = BloomShift_TexSample(Tex, Smp, UV + float2( px.x,  px.y)).rgb;
+
+	// 4 outer corner taps (offset by ±2 px)
+	float3 e = BloomShift_TexSample(Tex, Smp, UV + float2(-2.0 * px.x, -2.0 * px.y)).rgb;
+	float3 f = BloomShift_TexSample(Tex, Smp, UV + float2( 2.0 * px.x, -2.0 * px.y)).rgb;
+	float3 g = BloomShift_TexSample(Tex, Smp, UV + float2(-2.0 * px.x,  2.0 * px.y)).rgb;
+	float3 h = BloomShift_TexSample(Tex, Smp, UV + float2( 2.0 * px.x,  2.0 * px.y)).rgb;
+
+	// 4 outer-edge mid taps and centre
+	float3 i = BloomShift_TexSample(Tex, Smp, UV + float2(-2.0 * px.x, 0.0)).rgb;
+	float3 j = BloomShift_TexSample(Tex, Smp, UV + float2( 2.0 * px.x, 0.0)).rgb;
+	float3 k = BloomShift_TexSample(Tex, Smp, UV + float2(0.0, -2.0 * px.y)).rgb;
+	float3 l = BloomShift_TexSample(Tex, Smp, UV + float2(0.0,  2.0 * px.y)).rgb;
+	float3 m = BloomShift_TexSample(Tex, Smp, UV).rgb;
+
+	if (bAntiFlicker)
+	{
+		// Karis partial average — average the five 2×2 groups first, then
+		// luma-weight them.  Suppresses fireflies at the cost of one extra add.
+		float3 group0 = BloomShift_KarisAverage(a, b, c, d);             // inner
+		float3 group1 = BloomShift_KarisAverage(e, f, i, m);             // upper-left arm
+		float3 group2 = BloomShift_KarisAverage(g, h, j, m);             // upper-right arm
+		float3 group3 = BloomShift_KarisAverage(e, g, i, k);             // lower-left arm
+		float3 group4 = BloomShift_KarisAverage(f, h, j, l);             // lower-right arm
+		return 0.5  * group0
+		     + 0.125 * (group1 + group2 + group3 + group4);
+	}
+	else
+	{
+		// Standard COD weights: inner ring 0.5, four 4-tap arms 0.125 each.
+		float3 inner = 0.25 * (a + b + c + d);
+		float3 arm0  = 0.25 * (e + i + m + k);
+		float3 arm1  = 0.25 * (f + j + m + k);
+		float3 arm2  = 0.25 * (g + i + m + l);
+		float3 arm3  = 0.25 * (h + j + m + l);
+		return 0.5 * inner + 0.125 * (arm0 + arm1 + arm2 + arm3);
+	}
+}
+
+//-----------------------------------------------------------------------------
+// Mode 4 — Anamorphic Lens Streak
+//-----------------------------------------------------------------------------
+
+float3 BloomShift_AnamorphicStreak(Texture2D Tex, SamplerState Smp,
+                                   float2 UV, float2 PixelSize)
+{
+	const float angle = CUSTOM_BLOOM_ANAMORPHIC_ANGLE;
+	const float taps  = CUSTOM_BLOOM_ANAMORPHIC_LENGTH;
+	float2 dir = float2(cos(angle), sin(angle));
+
+	float3 sum    = float3(0,0,0);
+	float  weight = 0.0;
+	[unroll]
+	for (int i = -16; i <= 16; ++i)
+	{
+		float t = (float)i / 16.0;
+		float w = exp(-(t * t) * 4.0);
+		float2 off = dir * PixelSize * (t * taps);
+		sum    += BloomShift_TexSample(Tex, Smp, UV + off).rgb * w;
+		weight += w;
+	}
+
+	float3 tint = float3(CUSTOM_BLOOM_ANAMORPHIC_TINT_R,
+	                     CUSTOM_BLOOM_ANAMORPHIC_TINT_G,
+	                     CUSTOM_BLOOM_ANAMORPHIC_TINT_B);
+	return (sum / weight) * tint;
+}
+
+//-----------------------------------------------------------------------------
+// Mode 6 — Anime / Toon Hard Glow
+//-----------------------------------------------------------------------------
+
+float3 BloomShift_AnimeSetup(Texture2D Tex, SamplerState Smp,
+                             float2 UV, float2 PixelSize)
+{
+	const float threshold = CUSTOM_BLOOM_ANIME_THRESHOLD;
+	const int   R         = CUSTOM_BLOOM_ANIME_DILATION_RADIUS;
+
+	float3 maxC = float3(0,0,0);
+	[loop]
+	for (int y = -R; y <= R; ++y)
+	[loop]
+	for (int x = -R; x <= R; ++x)
+	{
+		float3 s = BloomShift_TexSample(Tex, Smp,
+			UV + float2(x, y) * PixelSize).rgb;
+		if (Luminance(s) > threshold)
+		{
+			maxC = max(maxC, s);
+		}
+	}
+	return maxC;
+}
+
+//-----------------------------------------------------------------------------
+// Mode 7 — Retro / CRT-style Glow
+//-----------------------------------------------------------------------------
+
+float3 BloomShift_RetroCRT(Texture2D Tex, SamplerState Smp,
+                           float2 UV, float2 PixelSize)
+{
+	float2 chromaShift = float2(CUSTOM_BLOOM_CRT_PHOSPHOR_OFFSET, 0.0) * PixelSize;
+	float r = BloomShift_TexSample(Tex, Smp, UV - chromaShift).r;
+	float g = BloomShift_TexSample(Tex, Smp, UV).g;
+	float b = BloomShift_TexSample(Tex, Smp, UV + chromaShift).b;
+
+	// Horizontal scanline smear (along the beam direction).
+	float3 smear = float3(0,0,0);
+	float  total = 0.0;
+	[unroll]
+	for (int i = -CUSTOM_BLOOM_CRT_HORIZ_TAPS; i <= CUSTOM_BLOOM_CRT_HORIZ_TAPS; ++i)
+	{
+		float t = (float)i / (float)CUSTOM_BLOOM_CRT_HORIZ_TAPS;
+		float w = exp(-(t * t) * 2.0);
+		float2 off = float2((float)i, 0.0) * PixelSize * 2.0;
+		smear += BloomShift_TexSample(Tex, Smp, UV + off).rgb * w;
+		total += w;
+	}
+	smear /= total;
+
+	// Scanline coupling: dim the in-between rows so glow concentrates on the
+	// "lit" scanlines like a real CRT phosphor pattern.
+	float scan = 0.5 + 0.5 * cos(UV.y * CUSTOM_BLOOM_CRT_SCANLINE_FREQ);
+	float scanGain = lerp(1.0 - CUSTOM_BLOOM_CRT_SCANLINE_DEPTH, 1.0, scan);
+
+	return (float3(r, g, b) * 0.5 + smear * 0.5) * scanGain;
+}
+
+//-----------------------------------------------------------------------------
+// Setup-stage dispatcher
+//
+// Mode 0 returns EngineDefault verbatim — leaving the dispatcher in place
+// permanently is safe.  Modes 3 (FFT Diffraction) and 5 (Spencer Ocular)
+// also return EngineDefault here; they take effect inside
+// Bloom/BloomResizeKernel.usf where the convolution kernel is baked.
+//-----------------------------------------------------------------------------
+
+float3 BloomShift_Setup(Texture2D Tex, SamplerState Smp,
+                        float2 UV, float2 PixelSize,
+                        float3 EngineDefault)
+{
+#if CUSTOM_BLOOM_MODE == 1
+	float3 down = BloomShift_DualKawase_Downsample(Tex, Smp, UV, PixelSize);
+	float3 up   = BloomShift_DualKawase_Upsample  (Tex, Smp, UV, PixelSize);
+	return 0.5 * (down + up);
+#elif CUSTOM_BLOOM_MODE == 2
+	return BloomShift_COD_Downsample(Tex, Smp, UV, PixelSize,
+		(bool)CUSTOM_BLOOM_COD_KARIS_AVG);
+#elif CUSTOM_BLOOM_MODE == 4
+	return BloomShift_AnamorphicStreak(Tex, Smp, UV, PixelSize);
+#elif CUSTOM_BLOOM_MODE == 6
+	return BloomShift_AnimeSetup(Tex, Smp, UV, PixelSize);
+#elif CUSTOM_BLOOM_MODE == 7
+	return BloomShift_RetroCRT(Tex, Smp, UV, PixelSize);
+#else
+	return EngineDefault;
+#endif
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+
+
+Texture2D InputTexture;
+SamplerState InputSampler;
+
+Texture3D LumBilateralGrid;
+SamplerState LumBilateralGridSampler;
+Texture2D BlurredLogLum;
+SamplerState BlurredLogLumSampler;
+
+float BloomThreshold;
+
+float2 GetExposureScaleMiddleGreyLumValue()
+{
+	float2 ExposureScaleMiddleGreyLumValue = EyeAdaptationLookupBuffer(EyeAdaptationBuffer).xw;
+
+	// Middle grey lum value adjusted by exposure compensation
+	ExposureScaleMiddleGreyLumValue.y = log2(0.18f * ExposureScaleMiddleGreyLumValue.y * LocalExposure_MiddleGreyExposureCompensation);
+
+	return ExposureScaleMiddleGreyLumValue;
+}
+
+float4 BloomSetupCommon(float2 UV, float2 ViewportUV, float2 ExposureScaleMiddleGreyLumValue)
+{
+	float4 SceneColor = Texture2DSample(InputTexture, InputSampler, UV) * View.OneOverPreExposure;
+
+	// ── PLUGIN OVERRIDE: route through ShaderShift bloom kernel ───────────
+#if CUSTOM_BLOOM_MODE != 0
+	SceneColor.rgb = BloomShift_Setup(InputTexture, InputSampler,
+	                                  UV, Input_ExtentInverse,
+	                                  SceneColor.rgb);
+#endif
+	// ──────────────────────────────────────────────────────────────────────
+
+	float ExposureScale = ExposureScaleMiddleGreyLumValue.x;
+
+#if USE_LOCAL_EXPOSURE
+	{
+		float LuminanceVal = CalculateEyeAdaptationLuminance(SceneColor.rgb);
+		float LogLuminance = log2(LuminanceVal);
+		float MiddleGreyLumValue = ExposureScaleMiddleGreyLumValue.y;
+
+		float BaseLogLum = CalculateBaseLogLuminance(LogLuminance, LocalExposure_BlurredLuminanceBlend, ExposureScale, ViewportUV, LumBilateralGrid, BlurredLogLum, LumBilateralGridSampler, BlurredLogLumSampler);
+		float LocalExposure = CalculateLocalExposure(LogLuminance + log2(ExposureScale), BaseLogLum, MiddleGreyLumValue, LocalExposure_HighlightContrastScale, LocalExposure_ShadowContrastScale, LocalExposure_DetailStrength);
+
+		SceneColor.rgb *= LocalExposure;
+	}
+#endif
+
+	half3 LinearColor = SceneColor.rgb;
+
+#if USE_THRESHOLD
+	half TotalLuminance = Luminance(LinearColor) * ExposureScale;
+	half BloomLuminance = TotalLuminance - BloomThreshold;
+	half BloomAmount = saturate(BloomLuminance * 0.5f);
+#else
+	half BloomAmount = 1.0f;
+#endif
+
+	return float4(BloomAmount * LinearColor, 0) * View.PreExposure;
+}
+
+#if PIXELSHADER
+
+FScreenTransform SvPositionToInputTextureUV;
+
+void BloomSetupPS(
+	float4 SvPosition : SV_POSITION,
+	out float4 OutColor : SV_Target0)
+{
+	float2 UV = ApplyScreenTransform(SvPosition.xy, SvPositionToInputTextureUV);
+	float2 ViewportUV = (int2(SvPosition.xy) - Input_ViewportMin) * Input_ViewportSizeInverse;
+
+	float2 ExposureScaleMiddleGreyLumValue = GetExposureScaleMiddleGreyLumValue();
+
+	OutColor = BloomSetupCommon(UV, ViewportUV, ExposureScaleMiddleGreyLumValue);
+}
+
+#elif COMPUTESHADER
+
+RWTexture2D<float4> RWOutputTexture;
+
+[numthreads(THREADGROUP_SIZEX, THREADGROUP_SIZEY, 1)]
+void BloomSetupCS(uint2 DispatchThreadId : SV_DispatchThreadID)
+{
+	float2 UV = ((float2)DispatchThreadId + (float2)Input_ViewportMin + 0.5f) * Input_ExtentInverse;
+
+	if (IsComputeUVOutOfBounds(UV))
+	{
+		return;
+	}
+
+	float2 ViewportUV = DispatchThreadId * Input_ViewportSizeInverse;
+
+	float2 ExposureScaleMiddleGreyLumValue = GetExposureScaleMiddleGreyLumValue();
+
+	float4 OutColor = BloomSetupCommon(UV, ViewportUV, ExposureScaleMiddleGreyLumValue);
+
+	uint2 PixelPos = DispatchThreadId + Input_ViewportMin;
+
+	RWOutputTexture[PixelPos] = OutColor;
+}
+
+#endif

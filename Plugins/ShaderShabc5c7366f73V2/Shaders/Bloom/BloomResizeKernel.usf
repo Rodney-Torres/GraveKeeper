@@ -1,0 +1,359 @@
+// Copyright Epic Games, Inc. All Rights Reserved.
+// Modified by ShaderShift — replaces the FFT bloom kernel with a procedural
+// PSF (FFT Diffraction Starburst or Spencer Ocular) when CUSTOM_BLOOM_MODE
+// is 3 or 5.  All other modes pass through the engine kernel unchanged.
+
+#include "BloomCommon.ush"
+
+
+//=============================================================================
+// ShaderShift bloom-mode dispatcher
+//
+// Only modes 3 (FFT Diffraction Starburst) and 5 (Spencer Ocular PSF) are
+// active here — they replace ResultColor with a procedural PSF.  Every other
+// value of CUSTOM_BLOOM_MODE leaves the resize behaviour bit-identical to
+// the engine default.
+//
+// The mode-implementation helpers are inlined immediately below so this
+// file has no external plugin dependencies — it pulls only the helpers it
+// actually needs.
+//=============================================================================
+
+#define CUSTOM_BLOOM_MODE 0
+
+
+// Per-mode tunables.
+
+// Mode 3 — FFT Diffraction Starburst
+#define CUSTOM_BLOOM_DIFFRACTION_BLADES       6      // aperture blade count (3..12)
+#define CUSTOM_BLOOM_DIFFRACTION_SPIKE_LEN    0.45   // 0..1, fraction of kernel half-extent
+#define CUSTOM_BLOOM_DIFFRACTION_SPIKE_THICK  0.014  // angular blade thickness (radians)
+#define CUSTOM_BLOOM_DIFFRACTION_CORE         0.08   // core gaussian sigma
+#define CUSTOM_BLOOM_DIFFRACTION_INTENSITY    1.0
+
+// Mode 5 — Spencer Ocular PSF
+#define CUSTOM_BLOOM_SPENCER_F0_WEIGHT        0.384
+#define CUSTOM_BLOOM_SPENCER_F1_WEIGHT        0.478
+#define CUSTOM_BLOOM_SPENCER_F2_WEIGHT        0.138
+#define CUSTOM_BLOOM_SPENCER_LENTICULAR       0.024  // chromatic halo weight
+#define CUSTOM_BLOOM_SPENCER_CORONA           0.118  // ciliary corona weight
+#define CUSTOM_BLOOM_SPENCER_FOV_DEG          60.0   // maps kernel uv to retinal degrees
+
+
+//-----------------------------------------------------------------------------
+// Helpers
+//-----------------------------------------------------------------------------
+
+float BloomShift_WrapAngle(float a)
+{
+	a = fmod(a + 3.14159265, 6.28318531);
+	return a - 3.14159265;
+}
+
+
+//-----------------------------------------------------------------------------
+// Mode 3 — FFT Diffraction Starburst (PSF kernel replacement)
+//
+// Star-shaped point spread function approximating an N-blade aperture.
+// Even N gives 2N spikes, odd N gives N spikes — same rule as a real iris
+// diaphragm.  uv is in [0,1]² with the centre at 0.5,0.5.
+//-----------------------------------------------------------------------------
+
+float BloomShift_StarPSF(float2 uv)
+{
+	float2 c = (uv - 0.5) * 2.0;          // centred [-1,1]
+	float  r = length(c);
+	float  a = atan2(c.y, c.x);
+
+	const float blades   = (float)CUSTOM_BLOOM_DIFFRACTION_BLADES;
+	const float bladeArc = 6.28318531 / blades;
+	const float thick    = CUSTOM_BLOOM_DIFFRACTION_SPIKE_THICK;
+
+	float spikes = 0.0;
+	[unroll]
+	for (int i = 0; i < 12; ++i)
+	{
+		if ((float)i >= blades) break;
+		float bladeAngle = bladeArc * (float)i;
+		float dA = BloomShift_WrapAngle(a - bladeAngle);
+		float ang = exp(-(dA * dA) / (thick * thick));
+		// Smooth monotonic decay along the spike — earlier versions used a
+		// sinc² Fraunhofer envelope here, but its zero crossings produced
+		// visible periodic gaps in the visible spike (every few pixels the
+		// envelope reached 0).  Real diffraction spikes decay smoothly from
+		// the centre; the secondary maxima are subtle ripples on a bright
+		// background, not a series of dark gaps.  An exponential rolloff
+		// gives a clean, brighter, gap-free spike.
+		float radNorm = saturate(r / max(CUSTOM_BLOOM_DIFFRACTION_SPIKE_LEN, 1e-4));
+		float rad     = exp(-radNorm * 3.0);
+		spikes += ang * rad;
+	}
+
+	// Bright airy core
+	float core = exp(-(r * r) / (CUSTOM_BLOOM_DIFFRACTION_CORE *
+	                             CUSTOM_BLOOM_DIFFRACTION_CORE));
+
+	return (spikes + core) * CUSTOM_BLOOM_DIFFRACTION_INTENSITY;
+}
+
+float3 BloomShift_DiffractionKernelRGB(float2 uv)
+{
+	// Mild chromatic dispersion across the spike length.
+	float2 c = uv - 0.5;
+	float  r = length(c);
+
+	float kR = BloomShift_StarPSF(0.5 + c * (1.00 + 0.020 * r));
+	float kG = BloomShift_StarPSF(0.5 + c * (1.00));
+	float kB = BloomShift_StarPSF(0.5 + c * (1.00 - 0.020 * r));
+	return float3(kR, kG, kB);
+}
+
+
+//-----------------------------------------------------------------------------
+// Mode 5 — Spencer Ocular PSF (PSF kernel replacement)
+//
+// Spencer, Shirley, Zimmerman, Greenberg — "Physically-Based Glare Effects
+// for Digital Images", SIGGRAPH 1995.  Weighted sum of three Gaussians
+// (corneal core, lens halo, ciliary corona) plus a chromatic lenticular ring.
+// `theta` is the visual angle in degrees from the bright source — kernel uv
+// is mapped to degrees with CUSTOM_BLOOM_SPENCER_FOV_DEG.
+//-----------------------------------------------------------------------------
+
+float BloomShift_SpencerPSF(float thetaDeg)
+{
+	float t  = max(thetaDeg, 1e-4);
+	float t2 = t * t;
+
+	// f0 (corneal): tiny, bright core
+	float f0 = exp(-t2 / (0.02 * 0.02));
+	// f1 (anterior lens): broader hot halo
+	float f1 = exp(-t2 / (0.45 * 0.45));
+	// f2 (posterior lens): wide-angle veiling glare
+	float f2 = 1.0 / (1.0 + 0.5 * t2);
+	// Lenticular halo (chromatic ring at ~3..5°)
+	float lent = exp(-((t - 4.0) * (t - 4.0)) / (1.5 * 1.5));
+	// Ciliary corona — fine radial spokes (treated isotropically here)
+	float corona = exp(-t2 / (1.4 * 1.4));
+
+	return CUSTOM_BLOOM_SPENCER_F0_WEIGHT  * f0
+	     + CUSTOM_BLOOM_SPENCER_F1_WEIGHT  * f1
+	     + CUSTOM_BLOOM_SPENCER_F2_WEIGHT  * f2
+	     + CUSTOM_BLOOM_SPENCER_LENTICULAR * lent
+	     + CUSTOM_BLOOM_SPENCER_CORONA     * corona;
+}
+
+float3 BloomShift_SpencerKernelRGB(float2 uv)
+{
+	float2 c = uv - 0.5;
+	float  r = length(c) * 2.0;          // 0..1 across the kernel half
+	float  thetaDeg = r * CUSTOM_BLOOM_SPENCER_FOV_DEG;
+
+	// Wavelength-dependent dispersion of the lenticular halo (chromatic ring):
+	// R peaks slightly outside, B slightly inside.
+	float kR = BloomShift_SpencerPSF(thetaDeg * 1.040);
+	float kG = BloomShift_SpencerPSF(thetaDeg * 1.000);
+	float kB = BloomShift_SpencerPSF(thetaDeg * 0.965);
+	return float3(kR, kG, kB);
+}
+
+
+//-----------------------------------------------------------------------------
+// FFT-kernel dispatcher
+//
+// Modes that don't replace the kernel just return EngineDefault.
+//-----------------------------------------------------------------------------
+
+float3 BloomShift_FFTKernel(float2 KernelUV, float3 EngineDefault)
+{
+#if CUSTOM_BLOOM_MODE == 3
+	return BloomShift_DiffractionKernelRGB(KernelUV);
+#elif CUSTOM_BLOOM_MODE == 5
+	return BloomShift_SpencerKernelRGB(KernelUV);
+#else
+	return EngineDefault;
+#endif
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+
+
+//------------------------------------------------------- CONFIG
+
+#define TILE_SIZE 8
+
+
+//------------------------------------------------------- PARAMETERS
+
+uint2 DstExtent;
+uint2 ImageExtent;
+float2 KernelSpatialTextureInvSize;
+uint2 DstBufferExtent;
+float KernelSupportScale;
+
+StructuredBuffer<FBloomKernelInfo> KernelConstantsBuffer;
+
+Texture2D SrcTexture;
+SamplerState SrcSampler;
+
+RWTexture2D<float4> DstTexture;
+
+
+//------------------------------------------------------- ENTRY POINT
+
+[numthreads(TILE_SIZE, TILE_SIZE, 1)]
+void MainCS(
+	uint2 GroupId : SV_GroupID,
+	uint GroupThreadIndex : SV_GroupIndex)
+{
+	FBloomKernelInfo OriginalKernelInfo = KernelConstantsBuffer[0];
+
+	// f(x) = T(x)  0 < x < k
+    //      = 0    x > k
+	// g(x) = f(L * frac(x/L))   - periodic extention of f with period L
+	// g_c(x) = f(L * frac( (x+c)/ L)  - periodic extension of offset f with period L
+	//
+	//
+	// The pixel that this thread 'owns'
+
+	uint2 PixelId = TILE_SIZE * GroupId + uint2(GroupThreadIndex % TILE_SIZE, GroupThreadIndex / TILE_SIZE);
+
+	// If the actual scan line length was not divisible by THREADS_PER_GROUP we will have a few extra threads that don't
+	// own any pixels.  This will be 'false' for most thread groups.
+
+	if (! (PixelId.x  < DstBufferExtent.x )) return;
+	if (! (PixelId.y  < DstBufferExtent.y )) return;
+
+	float2 DstSize = float2(DstExtent.x, DstExtent.y);
+
+	// Where to find the center of the kernel, and the relative size of the kernel texture wrt the dst buffer.
+	//float2 UVCenter    = KernelCenter;
+	float2 UVCenter    = (float2(OriginalKernelInfo.CenterPixelCoord) + 0.5) * KernelSpatialTextureInvSize;
+	float  ResizeScale = KernelSupportScale;
+
+	// The minor axis of the target buffer
+	// NB: I should change this to the minor axis of the viewing window..  The target buffer is bigger and some power of two.
+
+	uint MajorAxisPixelCount = max(ImageExtent.y, ImageExtent.x);
+
+	// The number of kernels that could fit along the minor axis = ResizeScale.
+
+	// The length of the kernel is pixels in the Dst Buffer.  Here the kernel is assumed
+	// to come from a square texture.
+
+	float KernelSizeInDstPixels = max( float(MajorAxisPixelCount) * (ResizeScale), 1.f);
+
+	// We have a simple frac trick for making the periodic image, but it fails
+	// in the following case.  Then we just have to do it by hand.
+	bool bKernelTooBigForFrac = !(float(DstBufferExtent.y) > UVCenter.y * KernelSizeInDstPixels);
+	bKernelTooBigForFrac = bKernelTooBigForFrac || !(float(DstBufferExtent.x) > UVCenter.x * KernelSizeInDstPixels);
+
+
+	float4 ResultColor = float4(0.f, 0.f, 0.f, 0.f);
+
+	if ( bKernelTooBigForFrac )
+	{
+
+		// distance from each corner
+
+		float2 UL = float2(PixelId.x, PixelId.y) / KernelSizeInDstPixels;
+		float2 UR = float2(DstBufferExtent.x - PixelId.x, PixelId.y) / KernelSizeInDstPixels;
+		float2 LL = float2(PixelId.x, DstBufferExtent.y - PixelId.y) / KernelSizeInDstPixels;
+		float2 LR = float2(DstBufferExtent.x - PixelId.x, DstBufferExtent.y - PixelId.y) / KernelSizeInDstPixels;
+
+		float4 TmpColor = float4(0.f, 0.f ,0.f ,0.f);
+		if (UL.x < 0.5 && UL.y < 0.5)
+		{
+			float4 SampledColor = SrcTexture.SampleLevel(SrcSampler, UL + UVCenter, 0);
+			TmpColor.rgb += SampledColor.rgb;
+			TmpColor.a = max(TmpColor.a, SampledColor.a);
+		}
+		if (UR.x < 0.5 && UR.y < 0.5)
+		{
+			float2 SamplePoint = float2(UVCenter.x - UR.x, UVCenter.y + UR.y);
+			float4 SampledColor = SrcTexture.SampleLevel(SrcSampler,  SamplePoint, 0);
+			TmpColor.rgb += SampledColor.rgb;
+			TmpColor.a = max(TmpColor.a, SampledColor.a);
+		}
+		if (LL.x < 0.5 && LL.y < 0.5)
+		{
+			float2 SamplePoint = float2(UVCenter.x + LL.x, UVCenter.y - LL.y);
+			float4 SampledColor = SrcTexture.SampleLevel(SrcSampler,  SamplePoint, 0);
+			TmpColor.rgb += SampledColor.rgb;
+			TmpColor.a = max(TmpColor.a, SampledColor.a);
+		}
+		if (LR.x < 0.5 && LR.y < 0.5)
+		{
+			float2 SamplePoint = float2(UVCenter.x - LR.x, UVCenter.y - LR.y);
+			float4 SampledColor = SrcTexture.SampleLevel(SrcSampler,  SamplePoint, 0);
+			TmpColor.rgb += SampledColor.rgb;
+			TmpColor.a = max(TmpColor.a, SampledColor.a);
+		}
+		ResultColor = TmpColor;
+	}
+	else
+	{
+		// Current Pixel in KernelUV space
+
+		float2 PixelInKernelUV = float2(float(PixelId.x) / KernelSizeInDstPixels, float(PixelId.y) / KernelSizeInDstPixels);
+
+		// The size of the Dst Buffer in terms of KernelSizeInDstPixels.  Note the Dst buffer is bigger than the image extent.
+
+		float2 DstSizeInKernelUnits = float2( DstSize.x / KernelSizeInDstPixels, DstSize.y / KernelSizeInDstPixels);
+
+		float2 InvDstSizeInKernelUnits = float2(1.f / DstSizeInKernelUnits.x, 1.f / DstSizeInKernelUnits.y );
+
+
+
+		// Offset by 1/2, 1/2 so we start in the middle of the kernel texture
+
+		float2 OffsetPixelInKernelUV = PixelInKernelUV + UVCenter;
+
+		// make periodic with period DstSizeInKernelUV
+
+		OffsetPixelInKernelUV *= InvDstSizeInKernelUnits;
+		OffsetPixelInKernelUV = frac(OffsetPixelInKernelUV);
+		OffsetPixelInKernelUV *= DstSizeInKernelUnits;
+
+
+
+		if (OffsetPixelInKernelUV.x < 1.f && OffsetPixelInKernelUV.y < 1.f)
+		{
+			float4 SampledColor = SrcTexture.SampleLevel(SrcSampler, OffsetPixelInKernelUV, 0);
+			ResultColor.rgba += SampledColor;
+		}
+	}
+
+	// Force the alpha kernel to be a delta function at the pixel center.
+#if 0
+	ResultColor.w = (PixelId.x == 0 && PixelId.y == 0) ? 1.f : 0.f;
+
+#endif
+
+	// ── PLUGIN OVERRIDE: replace the convolution kernel with a procedural
+	// PSF when ShaderShift's bloom mode is FFT Diffraction (3) or Spencer
+	// Ocular (5).  All other modes leave the engine-resized kernel intact.
+	//
+	// UE's FFT bloom pipeline expects the kernel's bright centre to live at
+	// PixelId = (0, 0) with the rest of the kernel wrapping toroidally
+	// around the four corners — that's the standard FFT periodic-convolution
+	// layout produced by the engine's resize/wrap logic above.  Our
+	// procedural kernels (BloomShift_StarPSF / BloomShift_SpencerPSF) are
+	// authored with the bright centre at uv = (0.5, 0.5), so we shift the
+	// output-buffer UV by 0.5 with frac() to map PixelId = (0, 0) to the
+	// kernel centre and PixelId = (N/2, N/2) to the kernel's far edge.
+	// Without this shift the kernel was effectively dark at PixelId = (0,0)
+	// and the FFT convolution either circularly shifted the bloom by half
+	// the buffer or read a near-zero centre energy and produced no visible
+	// effect — both consistent with "looks identical to default".
+#if CUSTOM_BLOOM_MODE == 3 || CUSTOM_BLOOM_MODE == 5
+	{
+		float2 RawUV    = (float2(PixelId) + 0.5f) / float2(DstBufferExtent);
+		float2 KernelUV = frac(RawUV + 0.5f);
+		ResultColor.rgb = BloomShift_FFTKernel(KernelUV, ResultColor.rgb);
+	}
+#endif
+	// ──────────────────────────────────────────────────────────────────────
+
+	DstTexture[PixelId] =  ResultColor;
+
+}
